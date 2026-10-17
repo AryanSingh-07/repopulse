@@ -9,7 +9,7 @@ import { build } from 'esbuild';
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const bundle = await build({ entryPoints: [path.join(root, 'worker/api.js')], bundle: true, platform: 'node', format: 'esm', write: false });
 const api = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString('base64')}`);
-const { parseRepository, extractFeatures, predictForest, GitHub, ApiError, analyze, handleApi } = api;
+const { parseRepository, extractFeatures, predictForest, GitHub, ApiError, analyze, analyzeCached, createCacheStore, handleApi } = api;
 const now = Date.parse('2026-10-17T12:00:00Z');
 const repository = { full_name: 'owner/project', html_url: 'https://github.com/owner/project', created_at: '2020-01-01T00:00:00Z', private: false };
 const commit = days => ({ sha: String(days), author: { login: 'one' }, commit: { committer: { date: new Date(now - days * 86400000).toISOString() }, author: { email: 'person@example.com' } } });
@@ -60,6 +60,186 @@ test('network diagnostics redact the configured token', async () => {
     assert.ok(!messages[0].includes(token));
     assert.ok(!messages[0].includes('ghp_exampleSECRET'));
   } finally { console.error = original; }
+});
+
+test('successful GET cache deduplicates requests, preserves Link, and expires in ten minutes', async () => {
+  let clock = now, calls = 0;
+  const store = createCacheStore(() => clock);
+  const github = new GitHub('test-cache-token', async () => {
+    calls++;
+    await Promise.resolve();
+    return Response.json({ calls }, { headers: { link: '<https://api.github.com/repos/cache/one/commits?page=2>; rel="next"' } });
+  }, store);
+  const results = await Promise.all(Array.from({ length: 4 }, () => github.get('/repos/cache/one')));
+  assert.equal(calls, 1);
+  results[0][0].calls = 999;
+  clock += 599999;
+  const cached = await github.get('/repos/cache/one');
+  assert.equal(cached[0].calls, 1);
+  assert.match(cached[1].get('link'), /rel="next"/);
+  assert.equal(calls, 1);
+  assert.ok([...store.entries.keys(), ...store.pending.keys()].every(key => !key.includes('test-cache-token')));
+  clock++;
+  assert.equal((await github.get('/repos/cache/one'))[0].calls, 2);
+  assert.equal(calls, 2);
+});
+
+test('cache scopes separate credentials and all stores remain bounded', async () => {
+  const store = createCacheStore(() => now);
+  let calls = 0;
+  const fetcher = async () => Response.json({ call: ++calls });
+  const first = new GitHub('credential-one', fetcher, store), same = new GitHub('credential-one', fetcher, store), other = new GitHub('credential-two', fetcher, store);
+  assert.equal((await first.get('/repos/cache/scoped'))[0].call, 1);
+  assert.equal((await same.get('/repos/cache/scoped'))[0].call, 1);
+  assert.equal((await other.get('/repos/cache/scoped'))[0].call, 2);
+  for (let index = 0; index < 280; index++) await first.get(`/repos/cache/item-${index}`);
+  assert.ok(store.entries.size <= 256);
+  assert.ok(store.bytes <= 12 * 1024 * 1024);
+  assert.ok([...store.entries.keys()].every(key => !/credential-(one|two)/.test(key)));
+});
+
+test('upstream failures never enter caches and rejected inflight requests clean up', async () => {
+  const store = createCacheStore(() => now);
+  let calls = 0;
+  const github = new GitHub(null, async () => {
+    calls++;
+    await Promise.resolve();
+    return Response.json({}, { status: 500 });
+  }, store);
+  const failures = await Promise.allSettled(Array.from({ length: 4 }, () => github.get('/repos/cache/failure')));
+  assert.ok(failures.every(result => result.status === 'rejected'));
+  assert.equal(calls, 1);
+  assert.equal(store.entries.size, 0);
+  assert.equal(store.pending.size, 0);
+  await assert.rejects(github.get('/repos/cache/failure'), error => error.code === 'github_unavailable');
+  assert.equal(calls, 2);
+  assert.equal(store.pending.size, 0);
+});
+
+test('primary cooldown is shared by credential, keeps search separate, and honors reset', async () => {
+  let clock = now, calls = 0;
+  const store = createCacheStore(() => clock);
+  const fetcher = async url => {
+    calls++;
+    if (url.includes('/search/')) return Response.json({ total_count: 0 });
+    if (calls === 1) return Response.json({}, { status: 403, headers: { 'x-ratelimit-resource': 'core', 'x-ratelimit-limit': '60', 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': String((now + 120000) / 1000), 'retry-after': '60' } });
+    return Response.json({ recovered: true });
+  };
+  const first = new GitHub(null, fetcher, store), second = new GitHub(null, fetcher, store);
+  await assert.rejects(first.get('/repos/cooldown/one'), error => error.retryAfter === 120 && error.retryAt === new Date(now + 120000).toISOString() && error.resetAt === error.retryAt);
+  await assert.rejects(second.get('/repos/cooldown/two'), error => error.code === 'github_rate_limit');
+  assert.equal(calls, 1);
+  await second.get('/search/issues', { q: 'repo:cooldown/one is:open' });
+  assert.equal(calls, 2);
+  assert.equal((await second.quotaStatus()).resources.core.remaining, 0);
+  clock += 120000;
+  assert.deepEqual((await second.get('/repos/cooldown/two'))[0], { recovered: true });
+  assert.equal(calls, 3);
+});
+
+test('secondary cooldown honors HTTP-date Retry-After across core and search with no retry loops', async () => {
+  let clock = now, calls = 0;
+  const store = createCacheStore(() => clock);
+  const github = new GitHub(null, async () => {
+    calls++;
+    return Response.json({}, { status: 429, headers: { 'retry-after': new Date(now + 60000).toUTCString(), 'x-ratelimit-remaining': '42', 'x-ratelimit-resource': 'core' } });
+  }, store);
+  await assert.rejects(github.get('/repos/cooldown/secondary'), error => error.retryAfter === 60);
+  await assert.rejects(github.get('/search/issues'), error => error.retryAfter === 60);
+  assert.equal(calls, 1);
+  clock += 30000;
+  await assert.rejects(github.get('/repos/cooldown/other'), error => error.retryAfter === 30);
+  assert.equal(calls, 1);
+});
+
+test('invalid GitHub credentials have a distinct error and are not cached', async () => {
+  let calls = 0;
+  const github = new GitHub('invalid-test-credential', async () => { calls++; return Response.json({}, { status: 401 }); });
+  for (let index = 0; index < 2; index++) await assert.rejects(github.get('/repos/cache/auth'), error => error.code === 'github_authentication' && error.status === 503);
+  assert.equal(calls, 2);
+  assert.equal(github.store.entries.size, 0);
+});
+
+function analysisTransport(counter) {
+  return async value => {
+    counter.calls++;
+    const url = new URL(value), route = url.pathname;
+    let result;
+    if (route === '/search/issues') result = { total_count: 1, incomplete_results: false };
+    else if (route.endsWith('/commits')) result = [commit(2), commit(40)];
+    else if (route.endsWith('/issues') || route.endsWith('/pulls') || route.endsWith('/releases')) result = [];
+    else {
+      const name = route.replace(/^\/repos\//, '');
+      result = { ...repository, full_name: name, html_url: `https://github.com/${name}` };
+    }
+    return Response.json(result, { headers: { 'x-ratelimit-resource': route === '/search/issues' ? 'search' : 'core', 'x-ratelimit-remaining': '50', 'x-ratelimit-limit': '60', 'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 3600) } });
+  };
+}
+
+test('analysis cache preserves original observations, expires, and deduplicates compare-style requests', async () => {
+  let clock = now;
+  const counter = { calls: 0 }, store = createCacheStore(() => clock);
+  const github = new GitHub(null, analysisTransport(counter), store);
+  const first = await analyzeCached('cache/result', github, now);
+  assert.equal(counter.calls, 7);
+  assert.equal(first.coverage.cached, false);
+  clock += 60000;
+  const second = await analyzeCached('https://github.com/cache/result', new GitHub(null, analysisTransport(counter), store), now + 60000);
+  assert.equal(counter.calls, 7);
+  assert.equal(second.coverage.cached, true);
+  assert.equal(second.coverage.observed_at, first.coverage.observed_at);
+  assert.equal(second.prediction.predicted_at, first.prediction.predicted_at);
+  assert.equal(second.coverage.cache_expires_at, first.coverage.cache_expires_at);
+  const next = new GitHub(null, analysisTransport(counter), store);
+  await Promise.all([analyzeCached('cache/compare', next, now), analyzeCached('cache/compare', next, now)]);
+  assert.equal(counter.calls, 14);
+  clock = now + 600000;
+  await analyzeCached('cache/result', new GitHub(null, analysisTransport(counter), store), clock);
+  assert.equal(counter.calls, 21);
+});
+
+test('optional search failures are not result-cached and retries reuse successful commit observations', async () => {
+  let clock = now;
+  const store = createCacheStore(() => clock), counter = { calls: 0 }, base = analysisTransport(counter);
+  const fetcher = async value => {
+    if (new URL(value).pathname === '/search/issues') {
+      counter.calls++;
+      return Response.json({}, { status: 403, headers: { 'x-ratelimit-resource': 'search', 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': String((now + 60000) / 1000) } });
+    }
+    return base(value);
+  };
+  const first = await analyzeCached('cache/partial', new GitHub(null, fetcher, store), clock);
+  assert.equal(first.coverage.cacheable, false);
+  assert.equal(first.repository.open_issues, null);
+  const callsAfterFirst = counter.calls;
+  clock += 1000;
+  const second = await analyzeCached('cache/partial', new GitHub(null, fetcher, store), clock);
+  assert.equal(counter.calls, callsAfterFirst, 'Successful core GETs should be reused and search should remain in cooldown');
+  assert.equal(second.coverage.cacheable, false);
+  assert.equal(second.coverage.cached, true);
+  assert.equal(second.coverage.data_observed_at, first.coverage.data_observed_at);
+  assert.ok([...store.entries.keys()].every(key => !key.includes('|analysis|')));
+});
+
+test('API analysis/compare reuse real successful results and health never spends GitHub quota', async () => {
+  const original = globalThis.fetch, counter = { calls: 0 }, env = { GITHUB_TOKEN: 'api-result-cache-test-only' };
+  globalThis.fetch = analysisTransport(counter);
+  const post = (endpoint, body) => handleApi(new Request(`https://app.test/api/${endpoint}`, { method: 'POST', body: JSON.stringify(body) }), env);
+  try {
+    assert.equal((await post('analyze', { url: 'cache/api-one' })).status, 200);
+    assert.equal(counter.calls, 7);
+    const cached = await (await post('analyze', { url: 'cache/api-one' })).json();
+    assert.equal(cached.coverage.cached, true);
+    assert.equal(counter.calls, 7);
+    assert.equal((await post('compare', { urls: ['cache/api-one', 'cache/api-two'] })).status, 200);
+    assert.equal(counter.calls, 14);
+    assert.equal((await post('compare', { urls: ['cache/api-three', 'cache/api-three'] })).status, 200);
+    assert.equal(counter.calls, 21);
+    const health = await (await handleApi(new Request('https://app.test/api/health'), env)).json();
+    assert.equal(counter.calls, 21);
+    assert.equal(health.rate_limit.credential_mode, 'authenticated');
+    assert.equal(health.rate_limit.resources.core.remaining, 50);
+  } finally { globalThis.fetch = original; }
 });
 
 test('missing, invalid, or future repository ages cannot generate a score', () => {

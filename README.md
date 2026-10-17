@@ -21,6 +21,8 @@ Open `http://localhost:4173`. This serves both the React app and the real GitHub
 
 Copy `.env.example` to `.env` if you want to supply `GITHUB_TOKEN`. This is optional for public repositories. Without it, GitHub's unauthenticated quota is small and shared by outbound IP. Use a token with the least access needed for public repository reads; never place it in `frontend/` or a `VITE_*` variable. Configure the hosted token as a server environment variable in Sites settings if a higher quota is needed.
 
+If you see "GitHub's API rate limit was reached", follow [TOKEN_SETUP.md](TOKEN_SETUP.md). A local `.env` does not configure the hosted secret. The app caches recent real observations and displays the reported retry time, but a token is needed for a larger server allowance.
+
 ## Develop with FastAPI
 
 ```powershell
