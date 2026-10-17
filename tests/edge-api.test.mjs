@@ -24,6 +24,44 @@ test('GitHub rate limit errors carry a retry interval', async () => {
   await assert.rejects(github.get('/repos/owner/project'), error => error.code === 'github_rate_limit' && error.retryAfter === 60 && error.status === 429);
 });
 
+test('native fetch keeps its global receiver in edge runtimes', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = function () {
+    assert.equal(this, globalThis, 'Native edge fetch requires the global receiver');
+    return Promise.resolve(Response.json({ live: true }));
+  };
+  try {
+    const [result] = await new GitHub().get('/repos/owner/project');
+    assert.deepEqual(result, { live: true });
+  } finally { globalThis.fetch = original; }
+});
+
+test('request cancellation also works without AbortSignal.timeout', async () => {
+  const descriptor = Object.getOwnPropertyDescriptor(AbortSignal, 'timeout');
+  Object.defineProperty(AbortSignal, 'timeout', { configurable: true, writable: true, value: undefined });
+  try {
+    const github = new GitHub(null, async (_url, options) => {
+      assert.ok(options.signal instanceof AbortSignal);
+      assert.equal(options.signal.aborted, false);
+      return Response.json({ fallback: true });
+    });
+    assert.deepEqual((await github.get('/repos/owner/project'))[0], { fallback: true });
+  } finally { Object.defineProperty(AbortSignal, 'timeout', descriptor); }
+});
+
+test('network diagnostics redact the configured token', async () => {
+  const token = 'private-test-token', messages = [], original = console.error;
+  console.error = (...args) => messages.push(args.join(' '));
+  try {
+    const github = new GitHub(token, async () => { throw new TypeError(`network failure ${token} Bearer ghp_exampleSECRET`); });
+    await assert.rejects(github.get('/repos/owner/project'), error => error.code === 'github_unavailable');
+    assert.equal(messages.length, 1);
+    assert.ok(messages[0].includes('network failure'));
+    assert.ok(!messages[0].includes(token));
+    assert.ok(!messages[0].includes('ghp_exampleSECRET'));
+  } finally { console.error = original; }
+});
+
 test('missing, invalid, or future repository ages cannot generate a score', () => {
   for (const created_at of [null, 'not-a-date', '2027-01-01T00:00:00Z']) assert.throws(() => extractFeatures([commit(2)], { created_at }, now), error => error.code === 'insufficient_data');
 });

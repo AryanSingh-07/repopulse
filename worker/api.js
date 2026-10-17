@@ -74,17 +74,33 @@ export function predictForest(features, model = forest) {
 }
 
 export class GitHub {
-  constructor(token, fetcher = fetch) {
+  constructor(token, fetcher = (...args) => globalThis.fetch(...args)) {
     this.fetcher = fetcher;
+    this.sanitizeError = error => {
+      const raw = String(error?.message || 'Request failed');
+      const scrubbed = token ? raw.split(token).join('[redacted]') : raw;
+      return scrubbed
+        .replace(/https?:\/\/\S+/gi, '[url]')
+        .replace(/\b(?:authorization|cookie|set-cookie)\s*[:=][^\r\n]*/gi, '[header redacted]')
+        .replace(/\b(?:Bearer\s+)?(?:gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)/gi, '[redacted]')
+        .slice(0, 240);
+    };
     this.headers = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'RepoPulse-Research/1.0' };
     if (token) this.headers.Authorization = `Bearer ${token}`;
   }
   async get(path, params = {}, emptyOk = false) {
     const url = new URL(`https://api.github.com${path}`);
     for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
-    let response;
-    try { response = await this.fetcher(url.toString(), { headers: this.headers, redirect: 'manual', signal: AbortSignal.timeout(20000) }); }
-    catch { throw new ApiError('github_unavailable', 'GitHub could not be reached. Try again shortly.', 502); }
+    let response, timer;
+    const controller = new AbortController();
+    const signal = typeof globalThis.AbortSignal?.timeout === 'function'
+      ? globalThis.AbortSignal.timeout(20000)
+      : (timer = setTimeout(() => controller.abort(), 20000), controller.signal);
+    try { response = await this.fetcher(url.toString(), { headers: this.headers, redirect: 'manual', signal }); }
+    catch (error) {
+      console.error('GitHub network failure', String(error?.name || 'Error').replace(/[^A-Za-z0-9_]/g, '').slice(0, 64), this.sanitizeError(error));
+      throw new ApiError('github_unavailable', 'GitHub could not be reached. Try again shortly.', 502);
+    } finally { if (timer !== undefined) clearTimeout(timer); }
     if (response.status === 409 && emptyOk) return [[], response.headers];
     if ([403, 429].includes(response.status)) {
       const remaining = response.headers.get('x-ratelimit-remaining'), retry = response.headers.get('retry-after');
