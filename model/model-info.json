@@ -1,0 +1,232 @@
+{
+  "version": "exploratory-1.0",
+  "model_version": "exploratory-1.0",
+  "trained_at": "2026-10-17T16:04:24.066941+00:00",
+  "algorithm": "Random Forest Classifier",
+  "status": "trained",
+  "horizon_days": 183,
+  "target_definition": "No commits reachable from the collected default-branch HEAD in the 183 days after the prediction cutoff. Merged pull requests count through their resulting default-branch commits. Merges solely to other branches are outside the target.",
+  "probability_type": "Uncalibrated mean Random Forest leaf class probability; not a statistically validated confidence level.",
+  "calibrated": false,
+  "risk_thresholds": {
+    "low_below": 0.3,
+    "high_at_or_above": 0.65,
+    "classification_threshold": 0.5,
+    "note": "Low/medium/high display bands are product conventions, not empirically optimized decision thresholds."
+  },
+  "features": [
+    {
+      "name": "commits_30d",
+      "label": "Commits in 30 days",
+      "definition": "Number of default-branch commits with cutoff - 30 days < committer timestamp <= cutoff.",
+      "importance": 0.08164807936050296
+    },
+    {
+      "name": "commits_90d",
+      "label": "Commits in 90 days",
+      "definition": "Number of default-branch commits with cutoff - 90 days < committer timestamp <= cutoff.",
+      "importance": 0.23092196514120744
+    },
+    {
+      "name": "commit_trend",
+      "label": "Commit momentum",
+      "definition": "recent 30-day commits / (preceding 60-day commits / 2 + 1) - 1.",
+      "importance": 0.034367269251082876
+    },
+    {
+      "name": "contributors_90d",
+      "label": "Contributors in 90 days",
+      "definition": "Distinct commit author email identities in the 90-day window; fall back to author login/name when absent.",
+      "importance": 0.18056177011902041
+    },
+    {
+      "name": "contributor_trend",
+      "label": "Contributor momentum",
+      "definition": "Distinct recent 30-day authors / (distinct preceding 60-day authors + 1) - 1.",
+      "importance": 0.04351642432030036
+    },
+    {
+      "name": "days_since_last_commit",
+      "label": "Days since last commit",
+      "definition": "Elapsed UTC days from most recent observed default-branch committer timestamp to cutoff.",
+      "importance": 0.3521140176403848
+    },
+    {
+      "name": "repository_age_days",
+      "label": "Repository age in days",
+      "definition": "Elapsed UTC days from GitHub repository created_at metadata to cutoff.",
+      "importance": 0.07687047416750127
+    }
+  ],
+  "feature_names": [
+    "commits_30d",
+    "commits_90d",
+    "commit_trend",
+    "contributors_90d",
+    "contributor_trend",
+    "days_since_last_commit",
+    "repository_age_days"
+  ],
+  "hyperparameters": {
+    "bootstrap": true,
+    "ccp_alpha": 0.0,
+    "class_weight": "balanced",
+    "criterion": "gini",
+    "max_depth": 6,
+    "max_features": "sqrt",
+    "max_leaf_nodes": null,
+    "max_samples": null,
+    "min_impurity_decrease": 0.0,
+    "min_samples_leaf": 2,
+    "min_samples_split": 2,
+    "min_weight_fraction_leaf": 0.0,
+    "monotonic_cst": null,
+    "n_estimators": 80,
+    "n_jobs": 1,
+    "oob_score": false,
+    "random_state": 42,
+    "verbose": 0,
+    "warm_start": false
+  },
+  "metrics": {
+    "model": {
+      "precision": 0.492958,
+      "recall": 0.76087,
+      "f1": 0.598291,
+      "accuracy": 0.673611,
+      "roc_auc": 0.800688,
+      "confusion_matrix": [
+        [
+          62,
+          36
+        ],
+        [
+          11,
+          35
+        ]
+      ]
+    },
+    "baseline": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "accuracy": 0.680556,
+      "roc_auc": 0.5,
+      "confusion_matrix": [
+        [
+          98,
+          0
+        ],
+        [
+          46,
+          0
+        ]
+      ]
+    },
+    "baseline_method": "DummyClassifier(strategy='prior')",
+    "positive_class": "inactive",
+    "classification_threshold": 0.5,
+    "confusion_matrix_order": "rows = observed [active, inactive]; columns = predicted [active, inactive]"
+  },
+  "evaluation": {
+    "method": "Chronological holdout AND disjoint repository groups. SHA-256(repo.lower())[0] % 4 == 0 assigns test repositories before outcomes are computed.",
+    "train_samples": 864,
+    "test_samples": 144,
+    "train_repositories": [
+      "BurntSushi/termcolor",
+      "chalk/ansi-styles",
+      "chalk/chalk",
+      "component/component",
+      "dbader/schedule",
+      "debug-js/debug",
+      "dtolnay/anyhow",
+      "dtolnay/thiserror",
+      "dylanaraps/neofetch",
+      "dylanaraps/pure-bash-bible",
+      "jashkenas/underscore",
+      "madrobby/zepto",
+      "mahmoud/boltons",
+      "matklad/once_cell",
+      "more-itertools/more-itertools",
+      "pallets/click",
+      "pallets/jinja",
+      "pallets/markupsafe",
+      "pypa/packaging",
+      "python-attrs/attrs",
+      "python/typing_extensions",
+      "request/request",
+      "ruby/rake",
+      "rupa/z",
+      "rust-lang/bitflags",
+      "rxi/dyad",
+      "rxi/log.c",
+      "rxi/map",
+      "shouldjs/should.js",
+      "sinatra/mustermann",
+      "sinatra/sinatra",
+      "sindresorhus/is",
+      "sindresorhus/p-map",
+      "tj/commander.js",
+      "visionmedia/page.js"
+    ],
+    "test_repositories": [
+      "chalk/supports-color",
+      "clibs/clib",
+      "expressjs/cookie-parser",
+      "expressjs/csurf",
+      "jashkenas/backbone",
+      "motdotla/dotenv",
+      "pallets/itsdangerous",
+      "pypa/sampleproject",
+      "python-humanize/humanize",
+      "rxi/vec",
+      "sindresorhus/p-limit",
+      "sindresorhus/p-queue"
+    ],
+    "train_repository_count": 35,
+    "test_repository_count": 12,
+    "train_cutoff_earliest": "2016-01-01T00:00:00+00:00",
+    "train_cutoff_latest": "2022-10-01T00:00:00+00:00",
+    "train_outcome_latest": "2023-04-02T00:00:00+00:00",
+    "test_cutoff_earliest": "2023-07-01T00:00:00+00:00",
+    "test_cutoff_latest": "2026-04-01T00:00:00+00:00",
+    "train_class_counts": {
+      "active": 670,
+      "inactive": 194
+    },
+    "test_class_counts": {
+      "active": 98,
+      "inactive": 46
+    },
+    "portable_export_max_absolute_error": 4.440892098500626e-16
+  },
+  "limitations": [
+    "Exploratory mini-project model trained on a small convenience sample of public libraries; this sample does not represent all GitHub repositories.",
+    "Historical windows from one repository are correlated and future windows overlap; window-level metrics are descriptive, not independent-trial confidence estimates.",
+    "Repository groups are disjoint, but projects can share maintainers or ecosystems. No external, independently collected validation dataset is available.",
+    "Probabilities are not calibrated; the percentage is a model score and must not be described as a validated confidence level.",
+    "No default-branch commits for 183 days is an operational inactivity outcome, not proof that a project is permanently abandoned. Stable mature projects can need few changes.",
+    "The current default-branch ancestry is reconstructed retrospectively. Deleted branches, rewritten commits and historical default-branch changes cannot be recovered; Git committer dates can be edited.",
+    "Only commit-derived features and repository creation date enter the model. Issue, pull request and release analytics shown elsewhere are descriptive context, not model inputs.",
+    "Merged pull requests count when their merge/squash commits reach the current default branch; merges confined to another branch do not enter the target.",
+    "Live GitHub API truncation, missing authors, rate limits and newly created repositories may prevent a comparable prediction; the service must report insufficient data explicitly."
+  ],
+  "provenance": {
+    "repository_count": 47,
+    "collected_repository_count": 48,
+    "commit_count": 54079,
+    "dataset": "data/historical_windows.csv",
+    "dataset_sha256": "eeafb55fdbf25c1022c0c3d86347c5075048b1e4e07afc80bacef031a6f4bd24",
+    "collection_manifest": "data/provenance.json",
+    "training_provenance": "data/training_provenance.json",
+    "real_data": true,
+    "synthetic_records": 0,
+    "manually_assigned_outcomes": 0
+  },
+  "runtime": {
+    "python": "3.12.14",
+    "scikit_learn": "1.9.1",
+    "numpy": "2.5.4",
+    "pandas": "3.0.1"
+  }
+}

@@ -1,0 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { normalizeRepository, analyzeRepository, compareRepositories, request } from './api.js';
+test('repository parser accepts public GitHub forms and strips git suffix', () => { assert.equal(normalizeRepository(' https://github.com/facebook/react.git '), 'facebook/react'); assert.equal(normalizeRepository('pallets/flask'), 'pallets/flask'); });
+test('repository parser rejects non-GitHub URLs, nested paths, and malformed owners', () => { for (const value of ['https://example.com/a/b', 'owner/repo/issues', '/owner/repo', 'a b/repo', '', 'owner/..']) assert.throws(() => normalizeRepository(value)); });
+test('duplicate comparison is rejected before a network call', () => { assert.throws(() => compareRepositories('facebook/react', 'https://github.com/Facebook/React'), /different/); });
+test('analyze sends normalized repository and propagates service error message', async () => { const original = globalThis.fetch; let call; globalThis.fetch = async (...args) => { call = args; return {ok:false,json:async()=>({error:{code:'NOT_FOUND',message:'Repository not found.'}})}; }; try { await assert.rejects(analyzeRepository('https://github.com/a/b'), /Repository not found/); assert.equal(call[0], '/api/analyze'); assert.deepEqual(JSON.parse(call[1].body), {url:'a/b'}); } finally { globalThis.fetch = original; } });
+test('unreadable service responses surface a useful error', async () => { const original = globalThis.fetch; globalThis.fetch = async () => ({ok:false,json:async()=>{throw new Error('bad')}}); try { await assert.rejects(request('/health'), /unreadable/); } finally {globalThis.fetch=original;} });

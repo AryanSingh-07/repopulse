@@ -1,0 +1,12 @@
+{
+  "name": "repopulse",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npm --prefix frontend run build && node scripts/build-worker.mjs",
+    "validate": "node scripts/validate-artifact.mjs",
+    "preview": "node scripts/preview.mjs",
+    "test:edge": "node --test tests/edge*.test.mjs"
+  },
+  "devDependencies": {"esbuild": "^0.25.0"}
+}

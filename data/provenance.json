@@ -1,0 +1,442 @@
+{
+  "started_at": "2026-10-17T15:59:24.491668+00:00",
+  "finished_at": "2026-10-17T16:00:07.314371+00:00",
+  "collector": "scripts/collect_history.py",
+  "selection": "Convenience sample of small public libraries across Python, JavaScript, C, shell, Rust and Ruby, including archived and maintained projects. Not representative of all GitHub.",
+  "collection_method": "GitHub REST repository metadata and full Git default-branch ancestry via bare partial clone. No source blobs, synthetic records, or manual target labels.",
+  "author_privacy": "Commit author emails hashed with SHA-256; only 20-character digest retained.",
+  "records": [
+    {
+      "repository": "BurntSushi/termcolor",
+      "status": "collected",
+      "commits": 1040,
+      "head_sha": "d672e7b09f3ac3e8c0c12e67a67c5d46265df88d",
+      "created_at": "2018-07-17T21:30:11Z",
+      "collected_at": "2026-10-17T15:59:56.791544+00:00",
+      "source_file": "data\\history\\BurntSushi__termcolor.json"
+    },
+    {
+      "repository": "chalk/ansi-styles",
+      "status": "collected",
+      "commits": 120,
+      "head_sha": "8cf247afbecf29a8227f7d0beb69c2997fc6bc61",
+      "created_at": "2013-07-31T22:56:59Z",
+      "collected_at": "2026-10-17T15:59:42.918622+00:00",
+      "source_file": "data\\history\\chalk__ansi-styles.json"
+    },
+    {
+      "repository": "chalk/chalk",
+      "status": "collected",
+      "commits": 380,
+      "head_sha": "47fc05abd46171b235e24174cd2dba83d25bf037",
+      "created_at": "2013-08-03T00:20:12Z",
+      "collected_at": "2026-10-17T15:59:41.691088+00:00",
+      "source_file": "data\\history\\chalk__chalk.json"
+    },
+    {
+      "repository": "chalk/supports-color",
+      "status": "collected",
+      "commits": 206,
+      "head_sha": "4963567f020de0f4cb15ebdfd3c6f5b7d13d54bf",
+      "created_at": "2013-08-03T00:01:50Z",
+      "collected_at": "2026-10-17T15:59:43.251392+00:00",
+      "source_file": "data\\history\\chalk__supports-color.json"
+    },
+    {
+      "repository": "clibs/clib",
+      "status": "collected",
+      "commits": 464,
+      "head_sha": "ebc642f6c6fc2b3920e8898df8f680b86db9e71e",
+      "created_at": "2012-10-28T07:50:09Z",
+      "collected_at": "2026-10-17T15:59:54.288743+00:00",
+      "source_file": "data\\history\\clibs__clib.json"
+    },
+    {
+      "repository": "component/component",
+      "status": "collected",
+      "commits": 766,
+      "head_sha": "05d35e43cbd27b4a04cc0e7cef1551bff6f31ffb",
+      "created_at": "2012-08-10T00:48:03Z",
+      "collected_at": "2026-10-17T15:59:50.571057+00:00",
+      "source_file": "data\\history\\component__component.json"
+    },
+    {
+      "repository": "dbader/schedule",
+      "status": "collected",
+      "commits": 398,
+      "head_sha": "82a43db1b938d8fdf60103bd41f329e06c8d3651",
+      "created_at": "2013-05-19T12:51:20Z",
+      "collected_at": "2026-10-17T15:59:39.399402+00:00",
+      "source_file": "data\\history\\dbader__schedule.json"
+    },
+    {
+      "repository": "debug-js/debug",
+      "status": "collected",
+      "commits": 554,
+      "head_sha": "666dbc50680933bde9e7fde3a6c3241102e8f60b",
+      "created_at": "2011-11-29T02:23:54Z",
+      "collected_at": "2026-10-17T15:59:43.898702+00:00",
+      "source_file": "data\\history\\debug-js__debug.json"
+    },
+    {
+      "repository": "dtolnay/anyhow",
+      "status": "collected",
+      "commits": 932,
+      "head_sha": "2cbb4e1bcbf8e7015f8d8b04a291c4c0597030b4",
+      "created_at": "2019-10-05T03:04:29Z",
+      "collected_at": "2026-10-17T16:00:02.198217+00:00",
+      "source_file": "data\\history\\dtolnay__anyhow.json"
+    },
+    {
+      "repository": "dtolnay/thiserror",
+      "status": "collected",
+      "commits": 852,
+      "head_sha": "3b29f0107e7900860c7a061c069958569eb458e7",
+      "created_at": "2019-10-09T06:20:06Z",
+      "collected_at": "2026-10-17T16:00:00.947101+00:00",
+      "source_file": "data\\history\\dtolnay__thiserror.json"
+    },
+    {
+      "repository": "dylanaraps/neofetch",
+      "status": "collected",
+      "commits": 5274,
+      "head_sha": "ccd5d9f52609bbdcd5d8fa78c4fdb0f12954125f",
+      "created_at": "2015-12-30T10:19:46Z",
+      "collected_at": "2026-10-17T15:59:52.728923+00:00",
+      "source_file": "data\\history\\dylanaraps__neofetch.json"
+    },
+    {
+      "repository": "dylanaraps/pure-bash-bible",
+      "status": "collected",
+      "commits": 263,
+      "head_sha": "8c19d0b482b04d8d50fb72b4c5148b41ce605c6d",
+      "created_at": "2018-06-13T01:39:33Z",
+      "collected_at": "2026-10-17T15:59:50.160961+00:00",
+      "source_file": "data\\history\\dylanaraps__pure-bash-bible.json"
+    },
+    {
+      "repository": "expressjs/cookie-parser",
+      "status": "collected",
+      "commits": 275,
+      "head_sha": "1f2a3a2037c4efe01605e064e7cc326008be7287",
+      "created_at": "2014-02-15T16:22:04Z",
+      "collected_at": "2026-10-17T15:59:47.931499+00:00",
+      "source_file": "data\\history\\expressjs__cookie-parser.json"
+    },
+    {
+      "repository": "expressjs/csurf",
+      "status": "collected",
+      "commits": 321,
+      "head_sha": "8c98863597d3db2c62b183d6efc50418d5587a0a",
+      "created_at": "2014-03-05T06:45:25Z",
+      "collected_at": "2026-10-17T15:59:47.973698+00:00",
+      "source_file": "data\\history\\expressjs__csurf.json"
+    },
+    {
+      "repository": "jashkenas/backbone",
+      "status": "collected",
+      "commits": 3576,
+      "head_sha": "94260d91dcf4050360f055506271b61f7b24e5e3",
+      "created_at": "2010-09-30T19:41:28Z",
+      "collected_at": "2026-10-17T15:59:47.573542+00:00",
+      "source_file": "data\\history\\jashkenas__backbone.json"
+    },
+    {
+      "repository": "jashkenas/underscore",
+      "status": "collected",
+      "commits": 2903,
+      "head_sha": "5c1e5f686f8500af9c9d15614ed60289d6d35d6b",
+      "created_at": "2009-10-25T18:31:06Z",
+      "collected_at": "2026-10-17T15:59:47.743577+00:00",
+      "source_file": "data\\history\\jashkenas__underscore.json"
+    },
+    {
+      "repository": "madrobby/zepto",
+      "status": "collected",
+      "commits": 1518,
+      "head_sha": "e1ecb3d70b2afaa6d380a35fb97ccd8e693d895d",
+      "created_at": "2010-09-20T07:57:57Z",
+      "collected_at": "2026-10-17T15:59:47.472680+00:00",
+      "source_file": "data\\history\\madrobby__zepto.json"
+    },
+    {
+      "repository": "mahmoud/boltons",
+      "status": "collected",
+      "commits": 1688,
+      "head_sha": "4e5faa3d7e4008d89e0d8bf1ea87b6d9a061a16d",
+      "created_at": "2013-02-20T06:17:12Z",
+      "collected_at": "2026-10-17T15:59:40.981192+00:00",
+      "source_file": "data\\history\\mahmoud__boltons.json"
+    },
+    {
+      "repository": "matklad/once_cell",
+      "status": "collected",
+      "commits": 523,
+      "head_sha": "80fe900b21f6d76c1a2ed74d3343e8a3a88c46d0",
+      "created_at": "2018-08-02T00:00:59Z",
+      "collected_at": "2026-10-17T15:59:57.727062+00:00",
+      "source_file": "data\\history\\matklad__once_cell.json"
+    },
+    {
+      "repository": "minimistjs/minimist",
+      "status": "collected",
+      "commits": 169,
+      "head_sha": "ecfdaea23e7931c0d529c52b743c711c3278a8ce",
+      "created_at": "2022-10-10T22:01:04Z",
+      "collected_at": "2026-10-17T15:59:45.121646+00:00",
+      "source_file": "data\\history\\minimistjs__minimist.json"
+    },
+    {
+      "repository": "more-itertools/more-itertools",
+      "status": "collected",
+      "commits": 2524,
+      "head_sha": "4aeb4338ae1407d8da9723e86da99efeb446f719",
+      "created_at": "2012-04-26T05:15:14Z",
+      "collected_at": "2026-10-17T15:59:38.969646+00:00",
+      "source_file": "data\\history\\more-itertools__more-itertools.json"
+    },
+    {
+      "repository": "motdotla/dotenv",
+      "status": "collected",
+      "commits": 1138,
+      "head_sha": "6d6e6c58074adc12131ec6ab6eac92fb92484dbc",
+      "created_at": "2013-07-05T18:25:05Z",
+      "collected_at": "2026-10-17T15:59:45.268059+00:00",
+      "source_file": "data\\history\\motdotla__dotenv.json"
+    },
+    {
+      "repository": "pallets/click",
+      "status": "collected",
+      "commits": 3379,
+      "head_sha": "2247b35ea1c47c727d7a06e51fa280e12a863ff6",
+      "created_at": "2014-04-24T09:52:19Z",
+      "collected_at": "2026-10-17T15:59:38.488773+00:00",
+      "source_file": "data\\history\\pallets__click.json"
+    },
+    {
+      "repository": "pallets/itsdangerous",
+      "status": "collected",
+      "commits": 677,
+      "head_sha": "672971d66a2ef9f85151e53283113f33d642dabd",
+      "created_at": "2011-06-24T00:09:55Z",
+      "collected_at": "2026-10-17T15:59:31.415358+00:00",
+      "source_file": "data\\history\\pallets__itsdangerous.json"
+    },
+    {
+      "repository": "pallets/jinja",
+      "status": "collected",
+      "commits": 2949,
+      "head_sha": "5ef70112a1ff19c05324ff889dd30405b1002044",
+      "created_at": "2010-10-17T13:41:17Z",
+      "collected_at": "2026-10-17T15:59:39.629473+00:00",
+      "source_file": "data\\history\\pallets__jinja.json"
+    },
+    {
+      "repository": "pallets/markupsafe",
+      "status": "collected",
+      "commits": 869,
+      "head_sha": "4e111271b1494995708a9e878a10829b5e10c7ba",
+      "created_at": "2010-06-22T17:22:58Z",
+      "collected_at": "2026-10-17T15:59:31.349975+00:00",
+      "source_file": "data\\history\\pallets__markupsafe.json"
+    },
+    {
+      "repository": "pypa/packaging",
+      "status": "collected",
+      "commits": 1157,
+      "head_sha": "ef837aad3127167671eb37b9f6bd8a94ec7ce26e",
+      "created_at": "2014-05-15T22:49:43Z",
+      "collected_at": "2026-10-17T15:59:34.674423+00:00",
+      "source_file": "data\\history\\pypa__packaging.json"
+    },
+    {
+      "repository": "pypa/sampleproject",
+      "status": "collected",
+      "commits": 197,
+      "head_sha": "621e4974ca25ce531773def586ba3ed8e736b3fc",
+      "created_at": "2013-12-03T16:43:27Z",
+      "collected_at": "2026-10-17T15:59:32.950362+00:00",
+      "source_file": "data\\history\\pypa__sampleproject.json"
+    },
+    {
+      "repository": "python-attrs/attrs",
+      "status": "collected",
+      "commits": 1848,
+      "head_sha": "ee66e7274852438cc23d4240a1a9cd632fda8b52",
+      "created_at": "2015-01-27T15:01:01Z",
+      "collected_at": "2026-10-17T15:59:38.687769+00:00",
+      "source_file": "data\\history\\python-attrs__attrs.json"
+    },
+    {
+      "repository": "python-humanize/humanize",
+      "status": "collected",
+      "commits": 1094,
+      "head_sha": "785e5dcc0d0308ad0dff3f6cc0faa7085ad0375b",
+      "created_at": "2022-03-06T08:50:33Z",
+      "collected_at": "2026-10-17T15:59:38.672470+00:00",
+      "source_file": "data\\history\\python-humanize__humanize.json"
+    },
+    {
+      "repository": "python/typing_extensions",
+      "status": "collected",
+      "commits": 546,
+      "head_sha": "f31feb4450296a72fa07819336a8db050cff42c3",
+      "created_at": "2022-05-19T13:12:25Z",
+      "collected_at": "2026-10-17T15:59:35.229853+00:00",
+      "source_file": "data\\history\\python__typing_extensions.json"
+    },
+    {
+      "repository": "request/request",
+      "status": "collected",
+      "commits": 2270,
+      "head_sha": "3c0cddc7c8eb60b470e9519da85896ed7ee0081e",
+      "created_at": "2011-01-23T01:25:14Z",
+      "collected_at": "2026-10-17T15:59:50.291664+00:00",
+      "source_file": "data\\history\\request__request.json"
+    },
+    {
+      "repository": "ruby/rake",
+      "status": "collected",
+      "commits": 3218,
+      "head_sha": "b7f1555d3f4250b0f1cc4f39ce65f620d2448be3",
+      "created_at": "2014-05-21T21:11:31Z",
+      "collected_at": "2026-10-17T16:00:07.310365+00:00",
+      "source_file": "data\\history\\ruby__rake.json"
+    },
+    {
+      "repository": "rupa/z",
+      "status": "collected",
+      "commits": 217,
+      "head_sha": "d37a763a6a30e1b32766fecc3b8ffd6127f8a0fd",
+      "created_at": "2009-06-25T22:31:23Z",
+      "collected_at": "2026-10-17T15:59:51.819180+00:00",
+      "source_file": "data\\history\\rupa__z.json"
+    },
+    {
+      "repository": "rust-lang/bitflags",
+      "status": "collected",
+      "commits": 823,
+      "head_sha": "74c6fd129967093b048bf71bf3ffbdadfbc76225",
+      "created_at": "2015-01-15T08:30:44Z",
+      "collected_at": "2026-10-17T16:00:01.351380+00:00",
+      "source_file": "data\\history\\rust-lang__bitflags.json"
+    },
+    {
+      "repository": "rxi/dyad",
+      "status": "collected",
+      "commits": 66,
+      "head_sha": "915ae4939529b9aaaf6ebfd2f65c6cff45fc0eac",
+      "created_at": "2014-08-03T19:00:04Z",
+      "collected_at": "2026-10-17T15:59:52.667731+00:00",
+      "source_file": "data\\history\\rxi__dyad.json"
+    },
+    {
+      "repository": "rxi/log.c",
+      "status": "collected",
+      "commits": 7,
+      "head_sha": "f9ea34994bd58ed342d2245cd4110bb5c6790153",
+      "created_at": "2017-03-12T14:31:53Z",
+      "collected_at": "2026-10-17T15:59:52.310461+00:00",
+      "source_file": "data\\history\\rxi__log.c.json"
+    },
+    {
+      "repository": "rxi/map",
+      "status": "collected",
+      "commits": 8,
+      "head_sha": "d6c355fcfb35e5bf71905c0c28ccee34694b4a95",
+      "created_at": "2014-09-11T18:23:09Z",
+      "collected_at": "2026-10-17T15:59:52.667731+00:00",
+      "source_file": "data\\history\\rxi__map.json"
+    },
+    {
+      "repository": "rxi/vec",
+      "status": "collected",
+      "commits": 50,
+      "head_sha": "20e84224ceb29a8f76d2b9d0ccfc547258a14ec5",
+      "created_at": "2014-05-30T20:05:11Z",
+      "collected_at": "2026-10-17T15:59:52.897329+00:00",
+      "source_file": "data\\history\\rxi__vec.json"
+    },
+    {
+      "repository": "shouldjs/should.js",
+      "status": "collected",
+      "commits": 733,
+      "head_sha": "690405e879d2a46c3bac38fbfabe1dce3c7de44d",
+      "created_at": "2014-05-28T11:20:53Z",
+      "collected_at": "2026-10-17T15:59:50.430707+00:00",
+      "source_file": "data\\history\\shouldjs__should.js.json"
+    },
+    {
+      "repository": "sinatra/mustermann",
+      "status": "collected",
+      "commits": 546,
+      "head_sha": "1185f70d8160eb6675a278ff1ac8ebd51e3e1d19",
+      "created_at": "2013-04-27T12:14:43Z",
+      "collected_at": "2026-10-17T16:00:02.743849+00:00",
+      "source_file": "data\\history\\sinatra__mustermann.json"
+    },
+    {
+      "repository": "sinatra/sinatra",
+      "status": "collected",
+      "commits": 4684,
+      "head_sha": "cb22afd7902b566b6eaba6c4ea89739494a65d12",
+      "created_at": "2009-01-14T01:27:30Z",
+      "collected_at": "2026-10-17T16:00:06.841508+00:00",
+      "source_file": "data\\history\\sinatra__sinatra.json"
+    },
+    {
+      "repository": "sindresorhus/is",
+      "status": "collected",
+      "commits": 257,
+      "head_sha": "e9c026c611c1160eaad50da00be4e676b626018f",
+      "created_at": "2017-09-21T17:46:08Z",
+      "collected_at": "2026-10-17T15:59:41.041189+00:00",
+      "source_file": "data\\history\\sindresorhus__is.json"
+    },
+    {
+      "repository": "sindresorhus/p-limit",
+      "status": "collected",
+      "commits": 84,
+      "head_sha": "a8a6fbec4e0e866d6d779b10889bb4f5567e70eb",
+      "created_at": "2016-10-21T07:51:54Z",
+      "collected_at": "2026-10-17T15:59:40.747746+00:00",
+      "source_file": "data\\history\\sindresorhus__p-limit.json"
+    },
+    {
+      "repository": "sindresorhus/p-map",
+      "status": "collected",
+      "commits": 106,
+      "head_sha": "d61b6a33cc1d5533ad5711b435959f3f78c3d2fe",
+      "created_at": "2016-10-21T03:34:17Z",
+      "collected_at": "2026-10-17T15:59:42.166999+00:00",
+      "source_file": "data\\history\\sindresorhus__p-map.json"
+    },
+    {
+      "repository": "sindresorhus/p-queue",
+      "status": "collected",
+      "commits": 231,
+      "head_sha": "7f272ab5ff2254c0dc2537b7977e88ede1cd55e8",
+      "created_at": "2016-10-28T10:57:52Z",
+      "collected_at": "2026-10-17T15:59:43.544641+00:00",
+      "source_file": "data\\history\\sindresorhus__p-queue.json"
+    },
+    {
+      "repository": "tj/commander.js",
+      "status": "collected",
+      "commits": 1517,
+      "head_sha": "ba6d13ddb4243e5913367734f8c159089ffe7834",
+      "created_at": "2011-08-14T21:33:58Z",
+      "collected_at": "2026-10-17T15:59:45.331771+00:00",
+      "source_file": "data\\history\\tj__commander.js.json"
+    },
+    {
+      "repository": "visionmedia/page.js",
+      "status": "collected",
+      "commits": 662,
+      "head_sha": "4f9991658f9b9e3de9b6059bade93693af24d6bd",
+      "created_at": "2012-04-12T23:33:30Z",
+      "collected_at": "2026-10-17T15:59:49.724891+00:00",
+      "source_file": "data\\history\\visionmedia__page.js.json"
+    }
+  ]
+}

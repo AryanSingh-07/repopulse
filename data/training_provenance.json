@@ -1,0 +1,445 @@
+{
+  "sources": [
+    {
+      "repository": "BurntSushi/termcolor",
+      "split": "train",
+      "commit_count": 1040,
+      "head_sha": "d672e7b09f3ac3e8c0c12e67a67c5d46265df88d",
+      "collected_at": "2026-10-17T15:59:56.791544+00:00",
+      "created_at": "2018-07-17T21:30:11Z",
+      "source_sha256": "1f2e262ecd8681bd7b5c9f8625b7746be6c38346da23e683caef196583d83e25"
+    },
+    {
+      "repository": "chalk/ansi-styles",
+      "split": "train",
+      "commit_count": 120,
+      "head_sha": "8cf247afbecf29a8227f7d0beb69c2997fc6bc61",
+      "collected_at": "2026-10-17T15:59:42.918622+00:00",
+      "created_at": "2013-07-31T22:56:59Z",
+      "source_sha256": "2e0c6e9dc136e3e8b65499ba4f6953456c6fdaaf4fb1945862590d89d3f2eae2"
+    },
+    {
+      "repository": "chalk/chalk",
+      "split": "train",
+      "commit_count": 380,
+      "head_sha": "47fc05abd46171b235e24174cd2dba83d25bf037",
+      "collected_at": "2026-10-17T15:59:41.691088+00:00",
+      "created_at": "2013-08-03T00:20:12Z",
+      "source_sha256": "5fb0d81c230a8a91a706d8d23b2a8ac80d484c41ff7afa6ec10d01ad887c8c3a"
+    },
+    {
+      "repository": "chalk/supports-color",
+      "split": "test",
+      "commit_count": 206,
+      "head_sha": "4963567f020de0f4cb15ebdfd3c6f5b7d13d54bf",
+      "collected_at": "2026-10-17T15:59:43.251392+00:00",
+      "created_at": "2013-08-03T00:01:50Z",
+      "source_sha256": "409e6cd7e11a81f17c83517644f3b22cbf124e832a339b89dfb9070a38acccbb"
+    },
+    {
+      "repository": "clibs/clib",
+      "split": "test",
+      "commit_count": 464,
+      "head_sha": "ebc642f6c6fc2b3920e8898df8f680b86db9e71e",
+      "collected_at": "2026-10-17T15:59:54.288743+00:00",
+      "created_at": "2012-10-28T07:50:09Z",
+      "source_sha256": "bf815700888b64ba491079a87cb344aca85d0331e9e558893e9f9faf67b1180c"
+    },
+    {
+      "repository": "component/component",
+      "split": "train",
+      "commit_count": 766,
+      "head_sha": "05d35e43cbd27b4a04cc0e7cef1551bff6f31ffb",
+      "collected_at": "2026-10-17T15:59:50.571057+00:00",
+      "created_at": "2012-08-10T00:48:03Z",
+      "source_sha256": "25ed9e9ead3df509ea8321bfaf6061404f09422f9c4de4bae0fd01392b220c4d"
+    },
+    {
+      "repository": "dbader/schedule",
+      "split": "train",
+      "commit_count": 398,
+      "head_sha": "82a43db1b938d8fdf60103bd41f329e06c8d3651",
+      "collected_at": "2026-10-17T15:59:39.399402+00:00",
+      "created_at": "2013-05-19T12:51:20Z",
+      "source_sha256": "3dfa7d4a9b062a3a1393ccf0a500b4faa163c4ba4b7a5a270814f0abb94624d0"
+    },
+    {
+      "repository": "debug-js/debug",
+      "split": "train",
+      "commit_count": 554,
+      "head_sha": "666dbc50680933bde9e7fde3a6c3241102e8f60b",
+      "collected_at": "2026-10-17T15:59:43.898702+00:00",
+      "created_at": "2011-11-29T02:23:54Z",
+      "source_sha256": "2970027d9d38f3350c068b435ea41d3138ede71832f6a0bf30b8f799978cd01b"
+    },
+    {
+      "repository": "dtolnay/anyhow",
+      "split": "train",
+      "commit_count": 932,
+      "head_sha": "2cbb4e1bcbf8e7015f8d8b04a291c4c0597030b4",
+      "collected_at": "2026-10-17T16:00:02.198217+00:00",
+      "created_at": "2019-10-05T03:04:29Z",
+      "source_sha256": "2007da04b314b6c0b4ce861d1c725061b87ad55edfe6e04d6cbeff880c99a9d8"
+    },
+    {
+      "repository": "dtolnay/thiserror",
+      "split": "train",
+      "commit_count": 852,
+      "head_sha": "3b29f0107e7900860c7a061c069958569eb458e7",
+      "collected_at": "2026-10-17T16:00:00.947101+00:00",
+      "created_at": "2019-10-09T06:20:06Z",
+      "source_sha256": "8ba637f6cc6ec14926b61bf55eb498bee336457ac52a3cb1c2c1c6841a681162"
+    },
+    {
+      "repository": "dylanaraps/neofetch",
+      "split": "train",
+      "commit_count": 5274,
+      "head_sha": "ccd5d9f52609bbdcd5d8fa78c4fdb0f12954125f",
+      "collected_at": "2026-10-17T15:59:52.728923+00:00",
+      "created_at": "2015-12-30T10:19:46Z",
+      "source_sha256": "ef3f330a1f6cabbea88fd9c58546d65e625f3f2e7c767b58bb5a12a2a1c79934"
+    },
+    {
+      "repository": "dylanaraps/pure-bash-bible",
+      "split": "train",
+      "commit_count": 263,
+      "head_sha": "8c19d0b482b04d8d50fb72b4c5148b41ce605c6d",
+      "collected_at": "2026-10-17T15:59:50.160961+00:00",
+      "created_at": "2018-06-13T01:39:33Z",
+      "source_sha256": "ce8a5577fd42b14c2ef41e3e6122fbd6959651c6f03a7a72c3b739b0ef853182"
+    },
+    {
+      "repository": "expressjs/cookie-parser",
+      "split": "test",
+      "commit_count": 275,
+      "head_sha": "1f2a3a2037c4efe01605e064e7cc326008be7287",
+      "collected_at": "2026-10-17T15:59:47.931499+00:00",
+      "created_at": "2014-02-15T16:22:04Z",
+      "source_sha256": "5d3299ca6aaa683e094a43e3ee97202b44bb99ae7e846304ad487865a152ce1d"
+    },
+    {
+      "repository": "expressjs/csurf",
+      "split": "test",
+      "commit_count": 321,
+      "head_sha": "8c98863597d3db2c62b183d6efc50418d5587a0a",
+      "collected_at": "2026-10-17T15:59:47.973698+00:00",
+      "created_at": "2014-03-05T06:45:25Z",
+      "source_sha256": "2dcdf25d1333b887aecc0abea497b86b437d9bceee7749f284c86a0a842639da"
+    },
+    {
+      "repository": "jashkenas/backbone",
+      "split": "test",
+      "commit_count": 3576,
+      "head_sha": "94260d91dcf4050360f055506271b61f7b24e5e3",
+      "collected_at": "2026-10-17T15:59:47.573542+00:00",
+      "created_at": "2010-09-30T19:41:28Z",
+      "source_sha256": "59929cbcca179887d5b06b41b651cfb5d537180ccb2a429b362ec238a83df34d"
+    },
+    {
+      "repository": "jashkenas/underscore",
+      "split": "train",
+      "commit_count": 2903,
+      "head_sha": "5c1e5f686f8500af9c9d15614ed60289d6d35d6b",
+      "collected_at": "2026-10-17T15:59:47.743577+00:00",
+      "created_at": "2009-10-25T18:31:06Z",
+      "source_sha256": "e9cf79b29ed8bb53169266d6860401d2cde2ef9d95b8be834e8f2a4674eb5943"
+    },
+    {
+      "repository": "madrobby/zepto",
+      "split": "train",
+      "commit_count": 1518,
+      "head_sha": "e1ecb3d70b2afaa6d380a35fb97ccd8e693d895d",
+      "collected_at": "2026-10-17T15:59:47.472680+00:00",
+      "created_at": "2010-09-20T07:57:57Z",
+      "source_sha256": "2a23efedae71bf213f3982dc197c9083db758b1f1f3372b15d577291eca84d2f"
+    },
+    {
+      "repository": "mahmoud/boltons",
+      "split": "train",
+      "commit_count": 1688,
+      "head_sha": "4e5faa3d7e4008d89e0d8bf1ea87b6d9a061a16d",
+      "collected_at": "2026-10-17T15:59:40.981192+00:00",
+      "created_at": "2013-02-20T06:17:12Z",
+      "source_sha256": "2b957d4a2fff060cf70cc3ce7d84733aa841d1da51f435331321c756d624ddc2"
+    },
+    {
+      "repository": "matklad/once_cell",
+      "split": "train",
+      "commit_count": 523,
+      "head_sha": "80fe900b21f6d76c1a2ed74d3343e8a3a88c46d0",
+      "collected_at": "2026-10-17T15:59:57.727062+00:00",
+      "created_at": "2018-08-02T00:00:59Z",
+      "source_sha256": "0368fe3213495730b3f5e94fe06404f920880932ec8c6a48c6aea6cd36877221"
+    },
+    {
+      "repository": "minimistjs/minimist",
+      "split": "train",
+      "commit_count": 169,
+      "head_sha": "ecfdaea23e7931c0d529c52b743c711c3278a8ce",
+      "collected_at": "2026-10-17T15:59:45.121646+00:00",
+      "created_at": "2022-10-10T22:01:04Z",
+      "source_sha256": "4f83576c552dc25a8192cdc172ed6787280975064ab1af0348df130ccd808386"
+    },
+    {
+      "repository": "more-itertools/more-itertools",
+      "split": "train",
+      "commit_count": 2524,
+      "head_sha": "4aeb4338ae1407d8da9723e86da99efeb446f719",
+      "collected_at": "2026-10-17T15:59:38.969646+00:00",
+      "created_at": "2012-04-26T05:15:14Z",
+      "source_sha256": "7b990df844e088a87c7e005dc50aa080ea27bae76f83b0941e7ecfac5ead1bd5"
+    },
+    {
+      "repository": "motdotla/dotenv",
+      "split": "test",
+      "commit_count": 1138,
+      "head_sha": "6d6e6c58074adc12131ec6ab6eac92fb92484dbc",
+      "collected_at": "2026-10-17T15:59:45.268059+00:00",
+      "created_at": "2013-07-05T18:25:05Z",
+      "source_sha256": "3519e0207804e1d3cd2804cef752d140c40f63c022bb2d4cab88418756feb85e"
+    },
+    {
+      "repository": "pallets/click",
+      "split": "train",
+      "commit_count": 3379,
+      "head_sha": "2247b35ea1c47c727d7a06e51fa280e12a863ff6",
+      "collected_at": "2026-10-17T15:59:38.488773+00:00",
+      "created_at": "2014-04-24T09:52:19Z",
+      "source_sha256": "8c6f0756e7681621f141794ef35f9c4ba8a41b8436bca28bd022360b23d7e817"
+    },
+    {
+      "repository": "pallets/itsdangerous",
+      "split": "test",
+      "commit_count": 677,
+      "head_sha": "672971d66a2ef9f85151e53283113f33d642dabd",
+      "collected_at": "2026-10-17T15:59:31.415358+00:00",
+      "created_at": "2011-06-24T00:09:55Z",
+      "source_sha256": "aeefcbf8ebe0c76bb7ee27b85d47d7228079d87fe9ad1e5f03158be784cd6298"
+    },
+    {
+      "repository": "pallets/jinja",
+      "split": "train",
+      "commit_count": 2949,
+      "head_sha": "5ef70112a1ff19c05324ff889dd30405b1002044",
+      "collected_at": "2026-10-17T15:59:39.629473+00:00",
+      "created_at": "2010-10-17T13:41:17Z",
+      "source_sha256": "774595732a0c5e797a46052007586c997d52808345068ffe66732e6be9f20c17"
+    },
+    {
+      "repository": "pallets/markupsafe",
+      "split": "train",
+      "commit_count": 869,
+      "head_sha": "4e111271b1494995708a9e878a10829b5e10c7ba",
+      "collected_at": "2026-10-17T15:59:31.349975+00:00",
+      "created_at": "2010-06-22T17:22:58Z",
+      "source_sha256": "a9f57edee8f67847f4a2e0b8df23be6d7a4d2dba83bd8c41e1e6b1e16ae9feed"
+    },
+    {
+      "repository": "pypa/packaging",
+      "split": "train",
+      "commit_count": 1157,
+      "head_sha": "ef837aad3127167671eb37b9f6bd8a94ec7ce26e",
+      "collected_at": "2026-10-17T15:59:34.674423+00:00",
+      "created_at": "2014-05-15T22:49:43Z",
+      "source_sha256": "f8001596ca52b3df248dbe773a5b913e8fd98f1809e3530837b8b9a1b114f853"
+    },
+    {
+      "repository": "pypa/sampleproject",
+      "split": "test",
+      "commit_count": 197,
+      "head_sha": "621e4974ca25ce531773def586ba3ed8e736b3fc",
+      "collected_at": "2026-10-17T15:59:32.950362+00:00",
+      "created_at": "2013-12-03T16:43:27Z",
+      "source_sha256": "ca6a771450079f61e3f1fff9227cf4e9360b43463e00a8f2e78e4781b338a8ad"
+    },
+    {
+      "repository": "python-attrs/attrs",
+      "split": "train",
+      "commit_count": 1848,
+      "head_sha": "ee66e7274852438cc23d4240a1a9cd632fda8b52",
+      "collected_at": "2026-10-17T15:59:38.687769+00:00",
+      "created_at": "2015-01-27T15:01:01Z",
+      "source_sha256": "6d702a2d6965120019b22846be00b93b4a971af2c6843ff2dd7d7e18afd53b14"
+    },
+    {
+      "repository": "python-humanize/humanize",
+      "split": "test",
+      "commit_count": 1094,
+      "head_sha": "785e5dcc0d0308ad0dff3f6cc0faa7085ad0375b",
+      "collected_at": "2026-10-17T15:59:38.672470+00:00",
+      "created_at": "2022-03-06T08:50:33Z",
+      "source_sha256": "f73a950ca38bd913177c3d1390acf662fe2ba4fc0fa229fc47e2be88b3ec81f1"
+    },
+    {
+      "repository": "python/typing_extensions",
+      "split": "train",
+      "commit_count": 546,
+      "head_sha": "f31feb4450296a72fa07819336a8db050cff42c3",
+      "collected_at": "2026-10-17T15:59:35.229853+00:00",
+      "created_at": "2022-05-19T13:12:25Z",
+      "source_sha256": "ed53158488bb130d3fdea4cf129e34e4fd87b7768190842b5a7b6c66719d5219"
+    },
+    {
+      "repository": "request/request",
+      "split": "train",
+      "commit_count": 2270,
+      "head_sha": "3c0cddc7c8eb60b470e9519da85896ed7ee0081e",
+      "collected_at": "2026-10-17T15:59:50.291664+00:00",
+      "created_at": "2011-01-23T01:25:14Z",
+      "source_sha256": "b6bd65388d4b0eee6b8e43213e3874f9ad88ad459463b313d0a40b1172e99863"
+    },
+    {
+      "repository": "ruby/rake",
+      "split": "train",
+      "commit_count": 3218,
+      "head_sha": "b7f1555d3f4250b0f1cc4f39ce65f620d2448be3",
+      "collected_at": "2026-10-17T16:00:07.310365+00:00",
+      "created_at": "2014-05-21T21:11:31Z",
+      "source_sha256": "6d80b68ab80f53ea559444af0e070a1dc5380fc6b54882b8d644f1c76297800f"
+    },
+    {
+      "repository": "rupa/z",
+      "split": "train",
+      "commit_count": 217,
+      "head_sha": "d37a763a6a30e1b32766fecc3b8ffd6127f8a0fd",
+      "collected_at": "2026-10-17T15:59:51.819180+00:00",
+      "created_at": "2009-06-25T22:31:23Z",
+      "source_sha256": "6ea5118a6d6a36f17ed6df4100bbd70f1e049ad42da231b1c2b2164a946fabf7"
+    },
+    {
+      "repository": "rust-lang/bitflags",
+      "split": "train",
+      "commit_count": 823,
+      "head_sha": "74c6fd129967093b048bf71bf3ffbdadfbc76225",
+      "collected_at": "2026-10-17T16:00:01.351380+00:00",
+      "created_at": "2015-01-15T08:30:44Z",
+      "source_sha256": "83043bd4fd457dd7895dafb24131b3e6b75113cce4beeccd5ad4a89fd8b95544"
+    },
+    {
+      "repository": "rxi/dyad",
+      "split": "train",
+      "commit_count": 66,
+      "head_sha": "915ae4939529b9aaaf6ebfd2f65c6cff45fc0eac",
+      "collected_at": "2026-10-17T15:59:52.667731+00:00",
+      "created_at": "2014-08-03T19:00:04Z",
+      "source_sha256": "41aa5e83339499f9eac86d0dc2910c1f58a6fd8fb7fb3cf7e0d7c05fbf57146b"
+    },
+    {
+      "repository": "rxi/log.c",
+      "split": "train",
+      "commit_count": 7,
+      "head_sha": "f9ea34994bd58ed342d2245cd4110bb5c6790153",
+      "collected_at": "2026-10-17T15:59:52.310461+00:00",
+      "created_at": "2017-03-12T14:31:53Z",
+      "source_sha256": "7e25e98e1d53b74006b49c5cc1920419147f760344f462e0c682950cee5b05ca"
+    },
+    {
+      "repository": "rxi/map",
+      "split": "train",
+      "commit_count": 8,
+      "head_sha": "d6c355fcfb35e5bf71905c0c28ccee34694b4a95",
+      "collected_at": "2026-10-17T15:59:52.667731+00:00",
+      "created_at": "2014-09-11T18:23:09Z",
+      "source_sha256": "cedd6821aa458b978aa65b555ae468b732d5601458d24296b5ad6f2d724be2e4"
+    },
+    {
+      "repository": "rxi/vec",
+      "split": "test",
+      "commit_count": 50,
+      "head_sha": "20e84224ceb29a8f76d2b9d0ccfc547258a14ec5",
+      "collected_at": "2026-10-17T15:59:52.897329+00:00",
+      "created_at": "2014-05-30T20:05:11Z",
+      "source_sha256": "da153b45e728b1a3a4c50052fcd4d0d4f6837acf2f3af656b0b9b93385ae8724"
+    },
+    {
+      "repository": "shouldjs/should.js",
+      "split": "train",
+      "commit_count": 733,
+      "head_sha": "690405e879d2a46c3bac38fbfabe1dce3c7de44d",
+      "collected_at": "2026-10-17T15:59:50.430707+00:00",
+      "created_at": "2014-05-28T11:20:53Z",
+      "source_sha256": "c28b29c34bf1ed626259beb69b3c6f9598c3da795a64416b5d6dff31e2697275"
+    },
+    {
+      "repository": "sinatra/mustermann",
+      "split": "train",
+      "commit_count": 546,
+      "head_sha": "1185f70d8160eb6675a278ff1ac8ebd51e3e1d19",
+      "collected_at": "2026-10-17T16:00:02.743849+00:00",
+      "created_at": "2013-04-27T12:14:43Z",
+      "source_sha256": "adfbc79d440d53180b47e70f64dd8eae11b177001f13282b376aa8637e8c3d39"
+    },
+    {
+      "repository": "sinatra/sinatra",
+      "split": "train",
+      "commit_count": 4684,
+      "head_sha": "cb22afd7902b566b6eaba6c4ea89739494a65d12",
+      "collected_at": "2026-10-17T16:00:06.841508+00:00",
+      "created_at": "2009-01-14T01:27:30Z",
+      "source_sha256": "09c27ae64d9cb6ec3bb2ab5d8fe7bb61debac9b229310be3746034b517b6ffbc"
+    },
+    {
+      "repository": "sindresorhus/is",
+      "split": "train",
+      "commit_count": 257,
+      "head_sha": "e9c026c611c1160eaad50da00be4e676b626018f",
+      "collected_at": "2026-10-17T15:59:41.041189+00:00",
+      "created_at": "2017-09-21T17:46:08Z",
+      "source_sha256": "07ddeefe4e749d54252c23987464e2b1340e7e95615cb85e121bae99fb3f4c08"
+    },
+    {
+      "repository": "sindresorhus/p-limit",
+      "split": "test",
+      "commit_count": 84,
+      "head_sha": "a8a6fbec4e0e866d6d779b10889bb4f5567e70eb",
+      "collected_at": "2026-10-17T15:59:40.747746+00:00",
+      "created_at": "2016-10-21T07:51:54Z",
+      "source_sha256": "f04a3ffcae4e14515b3e163c61cc8fbda33715931271d246b51c05b5e4768619"
+    },
+    {
+      "repository": "sindresorhus/p-map",
+      "split": "train",
+      "commit_count": 106,
+      "head_sha": "d61b6a33cc1d5533ad5711b435959f3f78c3d2fe",
+      "collected_at": "2026-10-17T15:59:42.166999+00:00",
+      "created_at": "2016-10-21T03:34:17Z",
+      "source_sha256": "1645227b1ffc6bb2d75b1c8b37d45c6dfb26f359b2862ff7a9626faabc368d0c"
+    },
+    {
+      "repository": "sindresorhus/p-queue",
+      "split": "test",
+      "commit_count": 231,
+      "head_sha": "7f272ab5ff2254c0dc2537b7977e88ede1cd55e8",
+      "collected_at": "2026-10-17T15:59:43.544641+00:00",
+      "created_at": "2016-10-28T10:57:52Z",
+      "source_sha256": "cd17146716116ed8bab71ce869950fd77a1c5bf85d39a29c64a24625fcdc287a"
+    },
+    {
+      "repository": "tj/commander.js",
+      "split": "train",
+      "commit_count": 1517,
+      "head_sha": "ba6d13ddb4243e5913367734f8c159089ffe7834",
+      "collected_at": "2026-10-17T15:59:45.331771+00:00",
+      "created_at": "2011-08-14T21:33:58Z",
+      "source_sha256": "70080cf8aabd25febeb888fc5548f1c17f590fa7cebbfda2babd10e41c74c914"
+    },
+    {
+      "repository": "visionmedia/page.js",
+      "split": "train",
+      "commit_count": 662,
+      "head_sha": "4f9991658f9b9e3de9b6059bade93693af24d6bd",
+      "collected_at": "2026-10-17T15:59:49.724891+00:00",
+      "created_at": "2012-04-12T23:33:30Z",
+      "source_sha256": "71cb0ad73f6cfad8cf5d8f9f638824f3382880159986ef97446253e7aa59ea4f"
+    }
+  ],
+  "excluded_windows": {
+    "before_repository_history": 181,
+    "incomplete_future_window": 96,
+    "outside_partition_period": 827
+  },
+  "trained_at": "2026-10-17T16:04:24.066941+00:00",
+  "dataset_sha256": "eeafb55fdbf25c1022c0c3d86347c5075048b1e4e07afc80bacef031a6f4bd24",
+  "training_script_sha256": "e215e00dd2ac46c8a1eff8ce3dfd0a006393b69299a0a00ede0c6e614d00b4d3",
+  "feature_script_sha256": "7f6576a796347f1e07b703859c41c601c051abaaecafa4829a0ae9de3e52977e"
+}
