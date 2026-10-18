@@ -2,11 +2,11 @@
 
 A distinctive navy-and-peach dashboard for understanding public GitHub activity and exploring six-month inactivity risk. React, FastAPI, GitHub REST, and an actually trained scikit-learn Random Forest. No Streamlit and no database.
 
-The deployed application uses a portable export of the same trained forest in a Cloudflare Worker. The Python API is included for local development. See [ARCHITECTURE.md](ARCHITECTURE.md) for the serving paths and evidence boundaries.
+The application supports a Vercel Node.js 22 deployment, the existing Sites Cloudflare Worker deployment, and a Python API for local development. Both JavaScript deployment builds use a portable export of the same trained forest. See [ARCHITECTURE.md](ARCHITECTURE.md) for the serving paths and evidence boundaries.
 
-## Run the complete deployed build locally
+## Run the complete app locally (Worker preview)
 
-Prerequisites: Node.js 22+, npm, Python 3.11+ for the Python service/training, and Git for historical collection.
+Prerequisites: Node.js 22.x, npm, Python 3.11+ for the Python service/training, and Git for historical collection.
 
 ```powershell
 cd repopulse
@@ -19,7 +19,7 @@ npm run preview
 
 Open `http://localhost:4173`. This serves both the React app and the real GitHub API/inference endpoints. The saved trained model is included; retraining is optional.
 
-Copy `.env.example` to `.env` if you want to supply `GITHUB_TOKEN`. This is optional for public repositories. Without it, GitHub's unauthenticated quota is small and shared by outbound IP. Use a token with the least access needed for public repository reads; never place it in `frontend/` or a `VITE_*` variable. Configure the hosted token as a server environment variable in Sites settings if a higher quota is needed.
+Copy `.env.example` to `.env` if you want to supply `GITHUB_TOKEN` for local serving. This is optional for public repositories. Without it, GitHub's unauthenticated quota is small and shared by outbound IP. Use a token with the least access needed for public repository reads; never place it in `frontend/` or a `VITE_*` variable. Configure hosted credentials separately as a server environment variable in the relevant Vercel project and environment or as a Sites secret.
 
 If you see "GitHub's API rate limit was reached", follow [TOKEN_SETUP.md](TOKEN_SETUP.md). A local `.env` does not configure the hosted secret. The app caches recent real observations and displays the reported retry time, but a token is needed for a larger server allowance.
 
@@ -115,12 +115,31 @@ python -m pytest tests/backend_service_test.py -q
 python -m unittest backend.ml.test_features -v
 npm run build
 npm run validate
+npm run test:vercel
 ```
 
 Tests cover URL validation, API errors, time-window boundaries, future-data exclusion, censored outcomes, feature compatibility, exported inference, and request/response behavior. Product data always comes from GitHub; mocked HTTP responses are confined to offline tests.
 
 ## Deployment
 
-`.openai/hosting.json` records the existing Site identity. The Sites source workflow packages `dist/server/index.js` and deployment metadata from the exact pushed source commit. `scripts/build-worker.mjs` embeds the React build and trained model in the Worker. This avoids a separate hosted Python service while retaining the same fitted model. No paid services or databases are required by the application code.
+### Vercel
+
+For the standalone `repopulse` GitHub repository, leave the Vercel project's Root Directory at the repository root (`.`) and use Node.js **22.x**. The checked-in `vercel.json` specifies the install command `npm ci && npm --prefix frontend ci` and build command `npm run build:vercel`.
+
+```powershell
+cd repopulse
+npm ci
+npm --prefix frontend ci
+npm run build:vercel
+npm run test:vercel
+```
+
+`scripts/build-vercel.mjs` produces **Build Output API v3** files under `.vercel/output/`: static React assets and a Node.js 22 function serving `/api`. The function bundles the trained forest and reuses the existing GitHub collection and inference implementation; a separate Python server is unnecessary.
+
+Connect the GitHub repository to the intended Vercel project, select the production branch, and deploy with the settings above. Add `GITHUB_TOKEN` to the project's **Production server environment** for an authenticated GitHub allowance, then deploy or redeploy to apply it. Preview deployments have their own environment configuration. Do not use a `VITE_*` variable for the token. See [TOKEN_SETUP.md](TOKEN_SETUP.md) for credential handling and verification.
+
+### Existing Sites deployment
+
+`.openai/hosting.json` records the existing Site identity. The Sites source workflow packages `dist/server/index.js` and deployment metadata from the exact pushed source commit. `npm run build` invokes `scripts/build-worker.mjs`, which embeds the React build and trained model in the Worker. This serving path also avoids a separate hosted Python service while retaining the same fitted model. The application uses no database.
 
 To redeploy, rebuild and validate, then use the Sites publishing workflow for the existing project. Never create another Site merely to update this one. The deployment defaults to private access for the owner.

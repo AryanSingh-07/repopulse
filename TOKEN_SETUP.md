@@ -1,6 +1,6 @@
 # Restore GitHub API access
 
-The app is deployed, but no `GITHUB_TOKEN` is configured in its hosted environment. Anonymous GitHub REST requests have a shared server-IP allowance of 60 requests per hour. Token-authenticated user requests normally have a 5,000-per-hour allowance; search and secondary limits still apply.
+If the app reports an anonymous GitHub allowance or `/api/health` reports `github_token_configured: false`, the serving environment needs a server-side `GITHUB_TOKEN` for a higher allowance. Each Vercel environment, Sites deployment, and local server has independent configuration. Anonymous GitHub REST requests have a shared server-IP allowance of 60 requests per hour. Token-authenticated user requests normally have a 5,000-per-hour allowance; search and secondary limits still apply.
 
 ## Create a token for public reads
 
@@ -11,11 +11,15 @@ The app is deployed, but no `GITHUB_TOKEN` is configured in its hosted environme
 
 ## Configure the hosted app
 
-The production environment needs `GITHUB_TOKEN` marked as a secret. Adding it to a local `.env` alone does not update the deployed Site. After the hosted secret is saved, deploy the existing saved Site version to apply the new environment revision; retraining the model is unnecessary.
+The selected hosting environment needs `GITHUB_TOKEN` as a server-side secret. Adding it to a local `.env` alone does not update a hosted deployment. Never put the token in frontend source, a `VITE_*` variable, a build artifact, or a Git commit. Retraining the model is unnecessary when configuring credentials.
 
-If configuring with Codex, put the token only in the ignored local `repopulse/.env` file as `GITHUB_TOKEN=...` and say that it is saved. Codex can then transfer that value to the hosted secret without putting it into source or frontend code. Do not paste the token into chat.
+- **Vercel:** add `GITHUB_TOKEN` to the intended project's **Production** environment, then deploy or redeploy the application. Add it separately to Preview if those deployments need authenticated access. The Node.js 22 API function reads the server environment at runtime. For the standalone `repopulse` repository, leave Root Directory at the repository root (`.`); the configured install command is `npm ci && npm --prefix frontend ci` and build command is `npm run build:vercel`.
+- **Sites:** save `GITHUB_TOKEN` as a secret for the existing Site, then deploy the saved Site version to apply the new environment revision.
+- **Local serving:** put `GITHUB_TOKEN=...` in the ignored `repopulse/.env` for the local preview, or provide it in the Python server's environment. Restart the local service after changing its environment.
 
-The application health endpoint reports `github_token_configured` as a boolean only. A valid token is verified by a real repository request; the presence of the environment key alone does not establish valid credentials.
+If configuring with Codex, put the token only in the ignored local `repopulse/.env` file as `GITHUB_TOKEN=...`, say that it is saved, and identify the intended hosting project and environment. That value can then be transferred to the authorized server secret without putting it into source or frontend code. Do not paste the token into chat.
+
+Check `/api/health` on the deployment being used; it reports `github_token_configured` as a boolean only. A valid token is verified by a real repository request; the presence of the environment key alone does not establish valid credentials. The interface's **Check connection** action can clear a previously recorded anonymous cooldown after server authentication is configured. Authenticated and unknown cooldowns keep their reported reset times.
 
 ## While waiting for access
 

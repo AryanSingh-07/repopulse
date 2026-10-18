@@ -16,9 +16,11 @@ Public Git default-branch histories → historical windows → time/repository s
                                          Joblib + portable forest JSON
 ```
 
-## Two equivalent serving paths
+## Three serving paths
 
-The hosted app is a Cloudflare Worker containing the built React application, the GitHub collection service, the actual tree arrays exported from scikit-learn, and the model card. The Worker follows each trained tree and averages its leaf probabilities; it does not substitute a handwritten scoring formula. Model artifacts are bundled into the deployment, so inference needs no external Python server.
+The Vercel build uses Node.js 22 and Build Output API v3. `npm run build:vercel` builds the React assets into `.vercel/output/static/` and bundles a Node.js function into `.vercel/output/functions/api.func/`. `vercel/handler.mjs` adapts Node HTTP requests to the existing `worker/api.js` collection and inference service. Build Output routes send same-origin `/api` requests to that function and serve the static frontend separately. `vercel.json` sets `npm ci && npm --prefix frontend ci` as the install command. `npm run test:vercel` verifies the adapter and generated output.
+
+The existing Sites deployment is a Cloudflare Worker containing the built React application, the GitHub collection service, the actual tree arrays exported from scikit-learn, and the model card. `npm run build` produces this Worker artifact. Both JavaScript serving paths follow each trained tree and average its leaf probabilities; neither substitutes a handwritten scoring formula. Model artifacts are bundled into each deployment, so inference needs no external Python server.
 
 For local Python development, `backend.app:app` exposes the FastAPI service. The frontend development server proxies `/api` to it. Python training saves both the Joblib model and portable JSON; the portable format is also used by the Python API to keep serving behavior consistent. Tests compare exported inference against scikit-learn.
 
@@ -34,7 +36,9 @@ The training corpus is a convenience sample of small public libraries, not a rep
 
 ## Storage and credentials
 
-Sanitized historical commit records, derived CSVs, provenance, model artifacts, and evaluation output are ordinary files. Contributor emails in the retained training corpus are hashed. No repository source blobs are retained in the dataset. Browser session storage remembers recent repository names only. API credentials remain server-side in `GITHUB_TOKEN`; they are never included in the React bundle or tracked `.env` files.
+Sanitized historical commit records, derived CSVs, provenance, model artifacts, and evaluation output are ordinary files. Contributor emails in the retained training corpus are hashed. No repository source blobs are retained in the dataset. Browser session storage remembers recent repository names, up to twelve successful public analyses for at most ten minutes, and known rate-limit reset metadata. Cached results retain their observation timestamps; incomplete optional upstream failures are not saved as complete analyses.
+
+Server response caches are bounded, scoped to the configured credential, and held in memory for up to ten minutes. They are not durable or guaranteed to be shared across hosting instances. API credentials remain server-side in `GITHUB_TOKEN`; they are never included in the React bundle, browser storage, or tracked `.env` files. Vercel Production and Preview environments, Sites secrets, and a local server's environment are configured independently. Changing a local `.env` does not update either hosted deployment; deploy or redeploy the selected hosting environment after setting its secret.
 
 ## References
 

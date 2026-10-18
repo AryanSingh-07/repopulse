@@ -4,9 +4,12 @@
   "type": "module",
   "scripts": {
     "build": "npm --prefix frontend run build && node scripts/build-worker.mjs",
+    "build:vercel": "npm --prefix frontend run build && node scripts/build-vercel.mjs",
     "validate": "node scripts/validate-artifact.mjs",
     "preview": "node scripts/preview.mjs",
-    "test:edge": "node --test tests/edge*.test.mjs"
+    "test:edge": "node --test tests/edge*.test.mjs",
+    "test:vercel": "node --test tests/vercel*.test.mjs"
   },
+  "engines": {"node": "22.x"},
   "devDependencies": {"esbuild": "^0.25.0"}
 }
