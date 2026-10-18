@@ -2,6 +2,8 @@
 
 A distinctive navy-and-peach dashboard for understanding public GitHub activity and exploring six-month inactivity risk. React, FastAPI, GitHub REST, and an actually trained scikit-learn Random Forest. No Streamlit and no database.
 
+Live application: [RepoPulse on Vercel](https://repopulse-rose.vercel.app/).
+
 The application supports a Vercel Node.js 22 deployment, the existing Sites Cloudflare Worker deployment, and a Python API for local development. Both JavaScript deployment builds use a portable export of the same trained forest. See [ARCHITECTURE.md](ARCHITECTURE.md) for the serving paths and evidence boundaries.
 
 ## Run the complete app locally (Worker preview)
@@ -136,7 +138,9 @@ npm run test:vercel
 
 `scripts/build-vercel.mjs` produces **Build Output API v3** files under `.vercel/output/`: static React assets and a Node.js 22 function serving `/api`. The function bundles the trained forest and reuses the existing GitHub collection and inference implementation; a separate Python server is unnecessary.
 
-Connect the GitHub repository to the intended Vercel project, select the production branch, and deploy with the settings above. Add `GITHUB_TOKEN` to the project's **Production server environment** for an authenticated GitHub allowance, then deploy or redeploy to apply it. Preview deployments have their own environment configuration. Do not use a `VITE_*` variable for the token. See [TOKEN_SETUP.md](TOKEN_SETUP.md) for credential handling and verification.
+The current production deployment was published from the Vercel CLI. From an authenticated checkout, use `npx vercel link` to select the intended project, then `npx vercel deploy --prod` to publish a new build. Continuous deployment on Git pushes requires separately connecting the GitHub repository in Vercel; it is not configured by this one-time deployment.
+
+Add `GITHUB_TOKEN` to the project's **Production server environment** for an authenticated GitHub allowance, then deploy or redeploy to apply it. Preview deployments have their own environment configuration. Do not use a `VITE_*` variable for the token. See [TOKEN_SETUP.md](TOKEN_SETUP.md) for credential handling and verification.
 
 ### Existing Sites deployment
 
