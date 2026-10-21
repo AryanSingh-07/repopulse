@@ -1,5 +1,7 @@
 # RepoPulse — Repository Intelligence
 
+[![CI](https://github.com/AryanSingh-07/repopulse/actions/workflows/ci.yml/badge.svg)](https://github.com/AryanSingh-07/repopulse/actions/workflows/ci.yml)
+
 A distinctive navy-and-peach dashboard for understanding public GitHub activity and exploring six-month inactivity risk. React, FastAPI, GitHub REST, and an actually trained scikit-learn Random Forest. No Streamlit and no database.
 
 Live application: [RepoPulse on Vercel](https://repopulse-rose.vercel.app/).

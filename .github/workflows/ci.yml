@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'improvements/**'
+      - 'feature/**'
+      - 'fix/**'
+  pull_request:
+
+jobs:
+  test:
+    name: Test & Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm --prefix frontend ci
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Run frontend tests
+        run: npm --prefix frontend test
+
+      - name: Run edge worker tests
+        run: node --test tests/edge*.test.mjs
+
+      - name: Run backend service tests
+        run: python -m pytest tests/backend_service_test.py -q
+
+      - name: Run ML feature tests
+        run: python -m unittest backend.ml.test_features -v
+
+      - name: Build Worker and frontend
+        run: npm run build
+
+      - name: Validate Worker artifact
+        run: npm run validate
+
+      - name: Run Vercel adapter tests
+        run: npm run test:vercel
