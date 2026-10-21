@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from backend.app import AnalyzeRequest, CompareRequest, app
-from backend.core import ApiError, GitHub, analyze, extract_features, parse_repository, predict_forest
+from backend.core import ApiError, GitHub, analyze, extract_features, parse_repository, predict_forest, explain_tree_path, format_contribution_sentence, get_top_contributions, load_model
 from backend.ml.features import extract_features as training_features
 
 NOW = datetime(2026, 10, 17, 12, tzinfo=timezone.utc)
@@ -218,4 +218,23 @@ def test_graphql_truncated_history_withholds_prediction(monkeypatch):
     assert result["prediction"] is None
     assert result["coverage"]["prediction_complete"] is False
     assert "collection cap" in result["prediction_error"]
+
+
+def test_tree_path_explanations():
+    forest, _ = load_model()
+    sample = {"commits_30d": 0, "commits_90d": 2, "commit_trend": -1, "contributors_90d": 1, "contributor_trend": -1, "days_since_last_commit": 60, "repository_age_days": 300}
+    res = explain_tree_path(sample, forest)
+    prob = predict_forest(sample, forest)
+    sum_contrib = sum(res["contributions"].values())
+    assert abs(prob - (res["bias"] + sum_contrib)) < 1e-12
+
+    top3 = get_top_contributions(sample, forest, limit=3)
+    assert len(top3) == 3
+    for item in top3:
+        assert item["feature"]
+        assert isinstance(item["contribution"], float)
+        assert isinstance(item["sentence"], str) and len(item["sentence"]) > 5
+    sentence = format_contribution_sentence("commits_30d", 0, 0.15)
+    assert sentence == "commits_30d dropped sharply"
+
 

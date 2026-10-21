@@ -77,6 +77,87 @@ export function predictForest(features, model = forest) {
   return scores.reduce((sum, score) => sum + score, 0) / scores.length;
 }
 
+export function explainTreePath(features, model = forest) {
+  let vector = model.feature_names.map(name => features[name]);
+  if (vector.some(value => value === null || !Number.isFinite(value))) throw new ApiError('insufficient_data', 'Complete recent commit history and a last commit are required for prediction.', 422);
+  vector = vector.map(Math.fround);
+  const nTrees = model.trees.length;
+  const contribs = Object.fromEntries(model.feature_names.map(name => [name, 0]));
+  let totalBias = 0;
+
+  for (const tree of model.trees) {
+    let node = 0;
+    const rootVal = tree.values[0];
+    let pPrev = rootVal[1] / (rootVal[0] + rootVal[1]);
+    totalBias += pPrev;
+
+    while (tree.children_left[node] !== -1) {
+      const featIdx = tree.feature[node];
+      const featName = model.feature_names[featIdx];
+      const nextNode = vector[featIdx] <= tree.threshold[node] ? tree.children_left[node] : tree.children_right[node];
+      const nextVal = tree.values[nextNode];
+      const pNext = nextVal[1] / (nextVal[0] + nextVal[1]);
+      contribs[featName] += (pNext - pPrev);
+      pPrev = pNext;
+      node = nextNode;
+    }
+  }
+
+  const bias = totalBias / nTrees;
+  for (const name of model.feature_names) {
+    contribs[name] /= nTrees;
+  }
+  return { bias, contributions: contribs };
+}
+
+export function formatContributionSentence(feature, value, contribution) {
+  const increasesRisk = contribution > 0;
+  switch (feature) {
+    case 'commits_30d':
+      if (increasesRisk) return value <= 0 ? 'commits_30d dropped sharply' : `commits_30d is low (${value} commits)`;
+      return `commits_30d shows active recent development (${value} commits)`;
+    case 'commits_90d':
+      if (increasesRisk) return `commits_90d is relatively low (${value} commits in 90 days)`;
+      return `commits_90d shows steady volume (${value} commits in 90 days)`;
+    case 'commit_trend':
+      if (increasesRisk) return 'commit_trend slowed compared to prior months';
+      return 'commit_trend shows positive momentum across recent months';
+    case 'contributors_90d':
+      if (increasesRisk) return `contributors_90d is limited (${value} active author${value === 1 ? '' : 's'})`;
+      return `contributors_90d has a healthy base of ${value} active authors`;
+    case 'contributor_trend':
+      if (increasesRisk) return 'contributor_trend declined with fewer recent participants';
+      return 'contributor_trend shows active author retention';
+    case 'days_since_last_commit':
+      if (increasesRisk) return `days_since_last_commit is elevated (${Math.round(value)} days without commits)`;
+      return `days_since_last_commit is recent (${Math.round(value)} days ago)`;
+    case 'repository_age_days':
+      if (increasesRisk) return 'repository_age_days indicates a younger repository with less history';
+      return 'repository_age_days reflects an established project history';
+    default:
+      return `${feature} ${increasesRisk ? 'increased' : 'reduced'} estimated risk (${contribution > 0 ? '+' : ''}${(contribution * 100).toFixed(1)}%)`;
+  }
+}
+
+export function getTopContributions(features, model = forest, limit = 3) {
+  const { contributions } = explainTreePath(features, model);
+  const items = model.feature_names.map((name, i) => {
+    const contribution = contributions[name] || 0;
+    const value = features[name];
+    return {
+      feature: name,
+      label: LABELS[i],
+      value,
+      contribution,
+      direction: contribution > 0 ? 'increase' : contribution < 0 ? 'decrease' : 'neutral',
+      sentence: formatContributionSentence(name, value, contribution),
+    };
+  });
+  items.sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
+  return items.slice(0, limit);
+}
+
+
 export class GitHub {
   constructor(token, fetcher = nativeFetch, cacheStore) {
     this.token = token;
@@ -423,8 +504,24 @@ export async function analyze(input, github, now = Date.now()) {
   else if (features.days_since_last_commit === null) predictionError = 'This repository has no commits. A last commit is required for this model.';
   else {
     const probability = predictForest(features);
-    const drivers = FEATURES.map((feature, i) => ({ feature, label: LABELS[i], value: features[feature], importance: forest.feature_importances?.[i] ?? 0 })).sort((a, b) => b.importance - a.importance);
-    prediction = { probability, risk: probability < .3 ? 'Low' : probability < .65 ? 'Medium' : 'High', model_version: forest.model_version, predicted_at: iso(now), explanation: 'Estimated probability of no default-branch commits in the next 183 days (six months). Exploratory research estimate; feature importances describe the trained model globally, not causes for this repository.', drivers };
+    const topContributions = getTopContributions(features);
+    const { contributions: allContribs } = explainTreePath(features);
+    const drivers = FEATURES.map((feature, i) => ({
+      feature,
+      label: LABELS[i],
+      value: features[feature],
+      importance: forest.feature_importances?.[i] ?? 0,
+      contribution: allContribs[feature] ?? 0,
+    })).sort((a, b) => b.importance - a.importance);
+    prediction = {
+      probability,
+      risk: probability < .3 ? 'Low' : probability < .65 ? 'Medium' : 'High',
+      model_version: forest.model_version,
+      predicted_at: iso(now),
+      explanation: 'Estimated probability of no default-branch commits in the next 183 days (six months). Exploratory research estimate; feature importances describe the trained model globally, not causes for this repository.',
+      drivers,
+      contributions: topContributions,
+    };
   }
   if (predictionError) warnings.push(predictionError);
   const cleanIssues = issues.items.filter(item => !('pull_request' in item));

@@ -9,7 +9,7 @@ import { build } from 'esbuild';
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const bundle = await build({ entryPoints: [path.join(root, 'worker/api.js')], bundle: true, platform: 'node', format: 'esm', write: false });
 const api = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString('base64')}`);
-const { parseRepository, extractFeatures, predictForest, GitHub, ApiError, analyze, analyzeCached, createCacheStore, handleApi } = api;
+const { parseRepository, extractFeatures, predictForest, explainTreePath, formatContributionSentence, getTopContributions, GitHub, ApiError, analyze, analyzeCached, createCacheStore, handleApi } = api;
 const now = Date.parse('2026-10-17T12:00:00Z');
 const repository = { full_name: 'owner/project', html_url: 'https://github.com/owner/project', created_at: '2020-01-01T00:00:00Z', private: false };
 const commit = days => ({ sha: String(days), author: { login: 'one' }, commit: { committer: { date: new Date(now - days * 86400000).toISOString() }, author: { email: 'person@example.com' } } });
@@ -406,3 +406,22 @@ test('JavaScript features and actual forest probabilities match shared Python an
   assert.ok(Math.max(...errors) < 1e-12, `Maximum probability error ${Math.max(...errors)}`);
   assert.ok(errors.length > 100);
 });
+
+test('tree-path contributions explain prediction with exact additivity and informative sentences', () => {
+  const sample = { commits_30d: 0, commits_90d: 2, commit_trend: -1, contributors_90d: 1, contributor_trend: -1, days_since_last_commit: 60, repository_age_days: 300 };
+  const explanation = explainTreePath(sample);
+  const prob = predictForest(sample);
+  const sumContrib = Object.values(explanation.contributions).reduce((a, b) => a + b, 0);
+  assert.ok(Math.abs(prob - (explanation.bias + sumContrib)) < 1e-12);
+
+  const top3 = getTopContributions(sample, undefined, 3);
+  assert.equal(top3.length, 3);
+  for (const item of top3) {
+    assert.ok(item.feature);
+    assert.ok(typeof item.contribution === 'number');
+    assert.ok(typeof item.sentence === 'string' && item.sentence.length > 5);
+  }
+  const zeroCommitsSentence = formatContributionSentence('commits_30d', 0, 0.15);
+  assert.equal(zeroCommitsSentence, 'commits_30d dropped sharply');
+});
+

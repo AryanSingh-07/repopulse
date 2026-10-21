@@ -121,6 +121,90 @@ def predict_forest(features, forest):
     return sum(predictions) / len(predictions)
 
 
+def explain_tree_path(features, forest):
+    vector = [features[name] for name in forest["feature_names"]]
+    if any(v is None or not math.isfinite(v) for v in vector):
+        raise ApiError("insufficient_data", "Complete recent commit history and a last commit are required for prediction.", 422)
+    vector = [struct.unpack("f", struct.pack("f", value))[0] for value in vector]
+    n_trees = len(forest["trees"])
+    contribs = {name: 0.0 for name in forest["feature_names"]}
+    total_bias = 0.0
+
+    for tree in forest["trees"]:
+        node = 0
+        root_val = tree["values"][0]
+        p_prev = root_val[1] / sum(root_val)
+        total_bias += p_prev
+        while tree["children_left"][node] != -1:
+            feat_idx = tree["feature"][node]
+            feat_name = forest["feature_names"][feat_idx]
+            nxt = tree["children_left"][node] if vector[feat_idx] <= tree["threshold"][node] else tree["children_right"][node]
+            val_next = tree["values"][nxt]
+            p_next = val_next[1] / sum(val_next)
+            contribs[feat_name] += (p_next - p_prev)
+            p_prev = p_next
+            node = nxt
+
+    bias = total_bias / n_trees
+    for name in forest["feature_names"]:
+        contribs[name] /= n_trees
+    return {"bias": bias, "contributions": contribs}
+
+
+def format_contribution_sentence(feature, value, contribution):
+    increases_risk = contribution > 0
+    if feature == "commits_30d":
+        if increases_risk:
+            return "commits_30d dropped sharply" if value <= 0 else f"commits_30d is low ({value} commits)"
+        return f"commits_30d shows active recent development ({value} commits)"
+    if feature == "commits_90d":
+        if increases_risk:
+            return f"commits_90d is relatively low ({value} commits in 90 days)"
+        return f"commits_90d shows steady volume ({value} commits in 90 days)"
+    if feature == "commit_trend":
+        if increases_risk:
+            return "commit_trend slowed compared to prior months"
+        return "commit_trend shows positive momentum across recent months"
+    if feature == "contributors_90d":
+        if increases_risk:
+            return f"contributors_90d is limited ({value} active author{'s' if value != 1 else ''})"
+        return f"contributors_90d has a healthy base of {value} active authors"
+    if feature == "contributor_trend":
+        if increases_risk:
+            return "contributor_trend declined with fewer recent participants"
+        return "contributor_trend shows active author retention"
+    if feature == "days_since_last_commit":
+        if increases_risk:
+            return f"days_since_last_commit is elevated ({round(value)} days without commits)"
+        return f"days_since_last_commit is recent ({round(value)} days ago)"
+    if feature == "repository_age_days":
+        if increases_risk:
+            return "repository_age_days indicates a younger repository with less history"
+        return "repository_age_days reflects an established project history"
+    return f"{feature} {'increased' if increases_risk else 'reduced'} estimated risk ({'+' if contribution > 0 else ''}{contribution * 100:.1f}%)"
+
+
+def get_top_contributions(features, forest, limit=3):
+    res = explain_tree_path(features, forest)
+    contribs = res["contributions"]
+    items = []
+    for i, name in enumerate(forest["feature_names"]):
+        c = contribs.get(name, 0.0)
+        v = features[name]
+        direction = "increase" if c > 0 else "decrease" if c < 0 else "neutral"
+        items.append({
+            "feature": name,
+            "label": LABELS[i],
+            "value": v,
+            "contribution": c,
+            "direction": direction,
+            "sentence": format_contribution_sentence(name, v, c),
+        })
+    items.sort(key=lambda item: abs(item["contribution"]), reverse=True)
+    return items[:limit]
+
+
+
 class GitHub:
     def __init__(self, client, token=None):
         self.client = client
@@ -399,9 +483,28 @@ async def analyze(name, github, now=None):
         prediction_error = "This repository has no commits. A last commit is required for this model."
     else:
         probability = predict_forest(features, forest)
+        top_contributions = get_top_contributions(features, forest)
+        all_contribs = explain_tree_path(features, forest)["contributions"]
         importances = forest.get("feature_importances", [0] * len(FEATURES))
-        drivers = sorted([{"feature": key, "label": LABELS[i], "value": features[key], "importance": importances[i]} for i, key in enumerate(FEATURES)], key=lambda item: item["importance"], reverse=True)
-        prediction = {"probability": probability, "risk": "Low" if probability < .3 else "Medium" if probability < .65 else "High", "model_version": forest["model_version"], "predicted_at": iso(now), "explanation": "Estimated probability of no default-branch commits in the next 183 days (six months). Exploratory research estimate; feature importances describe the trained model globally, not causes for this repository.", "drivers": drivers}
+        drivers = sorted([
+            {
+                "feature": key,
+                "label": LABELS[i],
+                "value": features[key],
+                "importance": importances[i],
+                "contribution": all_contribs.get(key, 0.0),
+            }
+            for i, key in enumerate(FEATURES)
+        ], key=lambda item: item["importance"], reverse=True)
+        prediction = {
+            "probability": probability,
+            "risk": "Low" if probability < .3 else "Medium" if probability < .65 else "High",
+            "model_version": forest["model_version"],
+            "predicted_at": iso(now),
+            "explanation": "Estimated probability of no default-branch commits in the next 183 days (six months). Exploratory research estimate; feature importances describe the trained model globally, not causes for this repository.",
+            "drivers": drivers,
+            "contributions": top_contributions,
+        }
     if prediction_error:
         warnings.append(prediction_error)
     clean_issues = [item for item in issues["items"] if "pull_request" not in item]

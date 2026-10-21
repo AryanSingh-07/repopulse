@@ -59,6 +59,7 @@ class Prediction(BaseModel):
     predicted_at: str
     explanation: str
     drivers: list[dict]
+    contributions: list[dict] = Field(default_factory=list)
 
 
 class AnalysisResponse(BaseModel):
