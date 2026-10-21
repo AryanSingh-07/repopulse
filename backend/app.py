@@ -5,12 +5,12 @@ from pathlib import Path
 from typing import Literal
 
 import httpx
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError, field_validator
 
-from .core import ApiError, GitHub, analyze, load_model, parse_repository
+from .core import ApiError, GitHub, analyze, load_model, parse_repository, render_badge
 
 
 def load_environment():
@@ -129,3 +129,19 @@ async def compare(request: Request):
     async with httpx.AsyncClient() as client:
         github = GitHub(client, os.getenv("GITHUB_TOKEN"))
         return {"repositories": await asyncio.gather(*(analyze(name, github) for name in names))}
+
+
+@app.get("/badge/{owner}/{repo}")
+@app.get("/api/badge/{owner}/{repo}")
+async def badge(owner: str, repo: str):
+    name = f"{owner}/{repo}"
+    try:
+        valid_name = parse_repository(name)
+        async with httpx.AsyncClient() as client:
+            result = await analyze(valid_name, GitHub(client, os.getenv("GITHUB_TOKEN")))
+        risk = result.get("prediction", {}).get("risk") if result.get("prediction") else "unknown"
+        svg = render_badge(risk)
+    except Exception:
+        svg = render_badge("unknown")
+    return Response(content=svg, media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=3600, s-maxage=3600", "X-Content-Type-Options": "nosniff"})
+

@@ -544,3 +544,50 @@ async def analyze(name, github, now=None):
         "insights": insights, "features": features,
         "coverage": {"observed_at": iso(now), "history_start": iso(since), "prediction_complete": complete90, "warnings": warnings, "default_branch_only": True, "collections": {key: {k: value[k] for k in ("truncated", "pages", "limit")} for key, value in (("commits", commits), ("issues", issues), ("pull_requests", pulls), ("releases", releases))}},
     }
+
+
+def render_badge(risk: str | None) -> str:
+    norm_risk = (risk or "unknown").lower()
+    if norm_risk == "low":
+        label = "low risk"
+        color = "#2ea44f"
+        right_width = 58
+    elif norm_risk in ("medium", "moderate"):
+        label = "medium risk"
+        color = "#dfb317"
+        right_width = 80
+    elif norm_risk == "high":
+        label = "high risk"
+        color = "#e05d44"
+        right_width = 60
+    else:
+        label = "unknown"
+        color = "#6e7681"
+        right_width = 60
+
+    left_width = 68
+    total_width = left_width + right_width
+    left_x = int((left_width / 2) * 10)
+    right_x = int((left_width + right_width / 2) * 10)
+
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{total_width}" height="20" role="img" aria-label="repopulse: {label}">
+  <linearGradient id="s" x2="0" y2="100%">
+    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <clipPath id="r">
+    <rect width="{total_width}" height="20" rx="3" fill="#fff"/>
+  </clipPath>
+  <g clip-path="url(#r)">
+    <rect width="{left_width}" height="20" fill="#242E49"/>
+    <rect x="{left_width}" width="{right_width}" height="20" fill="{color}"/>
+    <rect width="{total_width}" height="20" fill="url(#s)"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110">
+    <text aria-hidden="true" x="{left_x}" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)">repopulse</text>
+    <text x="{left_x}" y="140" transform="scale(.1)" fill="#fff">repopulse</text>
+    <text aria-hidden="true" x="{right_x}" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)">{label}</text>
+    <text x="{right_x}" y="140" transform="scale(.1)" fill="#fff">{label}</text>
+  </g>
+</svg>"""
+

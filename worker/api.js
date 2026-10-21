@@ -583,12 +583,81 @@ export async function analyzeCached(input, github, now = Date.now()) {
   return result;
 }
 
+export function renderBadge(risk) {
+  const normRisk = (risk || 'unknown').toLowerCase();
+  let label = 'unknown';
+  let color = '#6e7681';
+  let rightWidth = 60;
+
+  if (normRisk === 'low') {
+    label = 'low risk';
+    color = '#2ea44f';
+    rightWidth = 58;
+  } else if (normRisk === 'medium' || normRisk === 'moderate') {
+    label = 'medium risk';
+    color = '#dfb317';
+    rightWidth = 80;
+  } else if (normRisk === 'high') {
+    label = 'high risk';
+    color = '#e05d44';
+    rightWidth = 60;
+  }
+
+  const leftWidth = 68;
+  const totalWidth = leftWidth + rightWidth;
+  const leftX = (leftWidth / 2) * 10;
+  const rightX = (leftWidth + rightWidth / 2) * 10;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" height="20" role="img" aria-label="repopulse: ${label}">
+  <linearGradient id="s" x2="0" y2="100%">
+    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <clipPath id="r">
+    <rect width="${totalWidth}" height="20" rx="3" fill="#fff"/>
+  </clipPath>
+  <g clip-path="url(#r)">
+    <rect width="${leftWidth}" height="20" fill="#242E49"/>
+    <rect x="${leftWidth}" width="${rightWidth}" height="20" fill="${color}"/>
+    <rect width="${totalWidth}" height="20" fill="url(#s)"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110">
+    <text aria-hidden="true" x="${leftX}" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)">repopulse</text>
+    <text x="${leftX}" y="140" transform="scale(.1)" fill="#fff">repopulse</text>
+    <text aria-hidden="true" x="${rightX}" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)">${label}</text>
+    <text x="${rightX}" y="140" transform="scale(.1)" fill="#fff">${label}</text>
+  </g>
+</svg>`;
+}
+
 export async function handleApi(request, env = {}) {
   const respond = (payload, status = 200, extra = {}) => new Response(JSON.stringify(payload), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...extra } });
   try {
     const path = new URL(request.url).pathname.replace(/^\/api/, '');
     if (request.method === 'GET' && path === '/health') { requireModel(); return respond({ status: 'ok', model_version: forest.model_version, runtime: 'edge', github_token_configured: !!env.GITHUB_TOKEN, rate_limit: await new GitHub(env.GITHUB_TOKEN).quotaStatus(), cache: { scope: 'worker-memory', ttl_seconds: CACHE_TTL_MS / 1000, persistent: false } }); }
     if (request.method === 'GET' && path === '/model-info') { requireModel(); return respond(modelInfo); }
+    const badgeMatch = path.match(/^\/badge\/([^/]+)\/([^/]+)$/);
+    if (request.method === 'GET' && badgeMatch) {
+      requireModel();
+      const repoName = `${badgeMatch[1]}/${badgeMatch[2]}`;
+      const github = new GitHub(env.GITHUB_TOKEN);
+      let risk = 'unknown';
+      try {
+        const analysis = await analyzeCached(repoName, github);
+        risk = analysis.prediction?.risk || 'unknown';
+      } catch {
+        risk = 'unknown';
+      }
+      const svg = renderBadge(risk);
+      return new Response(svg, {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/svg+xml; charset=utf-8',
+          'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      });
+    }
     if (!['/analyze', '/predict', '/compare'].includes(path)) return respond({ error: { code: 'not_found', message: 'API endpoint not found.' } }, 404);
     if (request.method !== 'POST') return respond({ error: { code: 'method_not_allowed', message: 'Use POST with a JSON request body.' } }, 405, { Allow: 'POST' });
     const text = await request.text();

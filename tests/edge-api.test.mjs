@@ -9,7 +9,7 @@ import { build } from 'esbuild';
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const bundle = await build({ entryPoints: [path.join(root, 'worker/api.js')], bundle: true, platform: 'node', format: 'esm', write: false });
 const api = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString('base64')}`);
-const { parseRepository, extractFeatures, predictForest, explainTreePath, formatContributionSentence, getTopContributions, GitHub, ApiError, analyze, analyzeCached, createCacheStore, handleApi } = api;
+const { parseRepository, extractFeatures, predictForest, explainTreePath, formatContributionSentence, getTopContributions, renderBadge, GitHub, ApiError, analyze, analyzeCached, createCacheStore, handleApi } = api;
 const now = Date.parse('2026-10-17T12:00:00Z');
 const repository = { full_name: 'owner/project', html_url: 'https://github.com/owner/project', created_at: '2020-01-01T00:00:00Z', private: false };
 const commit = days => ({ sha: String(days), author: { login: 'one' }, commit: { committer: { date: new Date(now - days * 86400000).toISOString() }, author: { email: 'person@example.com' } } });
@@ -424,4 +424,31 @@ test('tree-path contributions explain prediction with exact additivity and infor
   const zeroCommitsSentence = formatContributionSentence('commits_30d', 0, 0.15);
   assert.equal(zeroCommitsSentence, 'commits_30d dropped sharply');
 });
+
+test('badge endpoint returns an SVG badge with proper colors and Content-Type', async () => {
+  const lowSvg = renderBadge('Low');
+  assert.ok(lowSvg.startsWith('<svg'));
+  assert.ok(lowSvg.includes('low risk'));
+  assert.ok(lowSvg.includes('#2ea44f'));
+
+  const medSvg = renderBadge('Medium');
+  assert.ok(medSvg.includes('medium risk'));
+  assert.ok(medSvg.includes('#dfb317'));
+
+  const highSvg = renderBadge('High');
+  assert.ok(highSvg.includes('high risk'));
+  assert.ok(highSvg.includes('#e05d44'));
+
+  const unknownSvg = renderBadge(null);
+  assert.ok(unknownSvg.includes('unknown'));
+  assert.ok(unknownSvg.includes('#6e7681'));
+
+  const response = await handleApi(new Request('https://app.test/api/badge/owner/project'));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('Content-Type'), 'image/svg+xml; charset=utf-8');
+  const body = await response.text();
+  assert.ok(body.startsWith('<svg'));
+  assert.ok(body.includes('repopulse'));
+});
+
 

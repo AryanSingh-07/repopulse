@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from backend.app import AnalyzeRequest, CompareRequest, app
-from backend.core import ApiError, GitHub, analyze, extract_features, parse_repository, predict_forest, explain_tree_path, format_contribution_sentence, get_top_contributions, load_model
+from backend.core import ApiError, GitHub, analyze, extract_features, parse_repository, predict_forest, explain_tree_path, format_contribution_sentence, get_top_contributions, load_model, render_badge
 from backend.ml.features import extract_features as training_features
 
 NOW = datetime(2026, 10, 17, 12, tzinfo=timezone.utc)
@@ -238,3 +238,53 @@ def test_tree_path_explanations():
     assert sentence == "commits_30d dropped sharply"
 
 
+def test_render_badge_outputs():
+    svg = render_badge("Low")
+    assert svg.strip().startswith("<svg")
+    assert "low risk" in svg
+    assert "#2ea44f" in svg
+
+    svg = render_badge("Medium")
+    assert "medium risk" in svg
+    assert "#dfb317" in svg
+
+    svg = render_badge("High")
+    assert "high risk" in svg
+    assert "#e05d44" in svg
+
+    svg = render_badge(None)
+    assert "unknown" in svg
+    assert "#6e7681" in svg
+
+
+def test_badge_endpoint(monkeypatch):
+    import backend.core as core
+    monkeypatch.setattr(core, "load_model", lambda: (FOREST, {}))
+
+    def handler(request):
+        path = request.url.path
+        if path == "/graphql":
+            return httpx.Response(200, json={"data": {"repository": {"defaultBranchRef": {"target": {"history90d": {"totalCount": 2}, "history6m": {"totalCount": 2, "pageInfo": {"hasNextPage": False, "endCursor": None}, "nodes": [{"oid": "sha-1", "committedDate": (NOW - timedelta(days=2)).isoformat(), "author": {"name": "Alice", "email": "alice@example.com", "user": {"login": "alice"}}}]}}}}}})
+        if "/repos/" in path:
+            return httpx.Response(200, json=REPO)
+        if path == "/search/issues":
+            return httpx.Response(200, json={"total_count": 0})
+        return httpx.Response(200, json=[])
+
+    OriginalAsyncClient = httpx.AsyncClient
+
+    async def run():
+        transport = httpx.MockTransport(handler)
+        monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: OriginalAsyncClient(transport=transport))
+        async with OriginalAsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/api/badge/owner/project")
+            assert resp.status_code == 200
+            assert "image/svg+xml" in resp.headers["content-type"]
+            assert resp.text.strip().startswith("<svg")
+            assert "repopulse" in resp.text
+
+            resp2 = await client.get("/badge/owner/project")
+            assert resp2.status_code == 200
+            assert "image/svg+xml" in resp2.headers["content-type"]
+
+    asyncio.run(run())
