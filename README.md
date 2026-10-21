@@ -10,7 +10,7 @@ The application supports a Vercel Node.js 22 deployment, the existing Sites Clou
 
 ## Run the complete app locally (Worker preview)
 
-Prerequisites: Node.js 22.x, npm, Python 3.11+ for the Python service/training, and Git for historical collection.
+Prerequisites: Node.js 22.x, npm, Python 3.12+ for the Python service/training, and Git for historical collection.
 
 ```powershell
 cd repopulse
