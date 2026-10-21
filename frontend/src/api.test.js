@@ -1,6 +1,7 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeRepository, analyzeRepository, compareRepositories, request, clearClientState, getRateLimit, hasCachedAnalysis, checkConnection } from './api.js';
+import { generateAnalysisCsv } from './csv.js';
 beforeEach(()=>clearClientState());
 test('repository parser accepts public GitHub forms and strips git suffix', () => { assert.equal(normalizeRepository(' https://github.com/facebook/react.git '), 'facebook/react'); assert.equal(normalizeRepository('pallets/flask'), 'pallets/flask'); });
 test('repository parser rejects non-GitHub URLs, nested paths, and malformed owners', () => { for (const value of ['https://example.com/a/b', 'owner/repo/issues', '/owner/repo', 'a b/repo', '', 'owner/..']) assert.throws(() => normalizeRepository(value)); });
@@ -18,3 +19,17 @@ test('cache keeps at most twelve repository entries in memory', async()=>{const 
 test('health check clears an anonymous cooldown after server authentication is configured', async()=>{const original=globalThis.fetch;const paths=[];globalThis.fetch=async(path)=>{paths.push(path);return path==='/api/health'?{ok:true,json:async()=>({github_token_configured:true})}:{ok:false,status:429,json:async()=>({error:{message:'Allowance exhausted.',retry_after:120,rate_limit:{credential_mode:'anonymous'}}})};};try{await assert.rejects(analyzeRepository('owner/project'));assert.ok(getRateLimit());await checkConnection();assert.equal(getRateLimit(),null);assert.deepEqual(paths,['/api/analyze','/api/health']);}finally{globalThis.fetch=original;}});
 test('health check preserves an authenticated or unknown cooldown',async()=>{const original=globalThis.fetch;try{for(const mode of ['authenticated',undefined]){clearClientState();globalThis.fetch=async(path)=>path==='/api/health'?{ok:true,json:async()=>({github_token_configured:true})}:{ok:false,status:429,json:async()=>({error:{message:'Allowance exhausted.',retry_after:120,rate_limit:{credential_mode:mode}}})};await assert.rejects(analyzeRepository('owner/project'));await checkConnection();assert.ok(getRateLimit());}}finally{globalThis.fetch=original;}});
 test('partial optional upstream failures are displayed but not cached',async()=>{const original=globalThis.fetch;try{for(const partial of [{coverage:{cacheable:false}},{coverage:{collections:{releases:{error:'github_rate_limit'}}}},{repository:{full_name:'owner/project',open_issues:null}},{repository:{full_name:'owner/project',open_pull_requests:null}}]){clearClientState();let calls=0;const result={...analysis(),...partial};globalThis.fetch=async()=>{calls++;return{ok:true,json:async()=>result};};const first=await analyzeRepository('owner/project');assert.deepEqual(first.prediction,result.prediction);assert.equal(hasCachedAnalysis('owner/project'),false);await analyzeRepository('owner/project');assert.equal(calls,2);}}finally{globalThis.fetch=original;}});
+test('generateAnalysisCsv formats repository, prediction, features, and activity rows', () => {
+  const mockData = {
+    repository: { full_name: 'test/repo', stars: 100, forks: 20 },
+    prediction: { probability: 0.25, risk: 'Low', model_version: '1.0', contributions: [{ feature: 'commits_30d', direction: 'positive', sentence: 'commits steady' }] },
+    features: { commits_30d: 5, commits_90d: 15, commit_trend: 0.1, contributors_90d: 3, contributor_trend: 0.0, days_since_last_commit: 2, repository_age_days: 500 },
+    activity: { commits: [{ month: '2026-09', commits: 5, contributors: 2 }] }
+  };
+  const csv = generateAnalysisCsv(mockData);
+  assert.ok(csv.includes('repository,full_name,test/repo'));
+  assert.ok(csv.includes('prediction,probability,0.25'));
+  assert.ok(csv.includes('feature,commits_30d,5'));
+  assert.ok(csv.includes('contribution,top_1_sentence,commits steady'));
+  assert.ok(csv.includes('activity,2026-09_commits,5'));
+});
