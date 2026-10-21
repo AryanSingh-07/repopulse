@@ -1,13 +1,159 @@
 {
   "version": "exploratory-1.0",
   "model_version": "exploratory-1.0",
-  "trained_at": "2026-10-17T16:04:24.066941+00:00",
+  "trained_at": "2026-10-21T12:55:16.375923+00:00",
+  "cross_validation": {
+    "method": "5-fold GroupKFold by repository",
+    "n_splits": 5,
+    "n_samples": 1008,
+    "n_repositories": 47,
+    "comparison_table": {
+      "Random Forest": {
+        "roc_auc": {
+          "mean": 0.904333,
+          "std": 0.050813,
+          "ci95_half_width": 0.04454,
+          "ci95_low": 0.859794,
+          "ci95_high": 0.948873
+        },
+        "brier_score": {
+          "mean": 0.111875,
+          "std": 0.033577,
+          "ci95_half_width": 0.029431,
+          "ci95_low": 0.082444,
+          "ci95_high": 0.141307
+        },
+        "f1": {
+          "mean": 0.690875,
+          "std": 0.112354,
+          "ci95_half_width": 0.098482,
+          "ci95_low": 0.592393,
+          "ci95_high": 0.789357
+        },
+        "precision": {
+          "mean": 0.635483,
+          "std": 0.135691,
+          "ci95_half_width": 0.118938,
+          "ci95_low": 0.516545,
+          "ci95_high": 0.754421
+        },
+        "recall": {
+          "mean": 0.765516,
+          "std": 0.078552,
+          "ci95_half_width": 0.068854,
+          "ci95_low": 0.696661,
+          "ci95_high": 0.83437
+        },
+        "accuracy": {
+          "mean": 0.843511,
+          "std": 0.050898,
+          "ci95_half_width": 0.044614,
+          "ci95_low": 0.798897,
+          "ci95_high": 0.888125
+        }
+      },
+      "Logistic Regression": {
+        "roc_auc": {
+          "mean": 0.91082,
+          "std": 0.054156,
+          "ci95_half_width": 0.04747,
+          "ci95_low": 0.863349,
+          "ci95_high": 0.95829
+        },
+        "brier_score": {
+          "mean": 0.114149,
+          "std": 0.029938,
+          "ci95_half_width": 0.026242,
+          "ci95_low": 0.087907,
+          "ci95_high": 0.140391
+        },
+        "f1": {
+          "mean": 0.66697,
+          "std": 0.138264,
+          "ci95_half_width": 0.121194,
+          "ci95_low": 0.545777,
+          "ci95_high": 0.788164
+        },
+        "precision": {
+          "mean": 0.588814,
+          "std": 0.148893,
+          "ci95_half_width": 0.130511,
+          "ci95_low": 0.458303,
+          "ci95_high": 0.719324
+        },
+        "recall": {
+          "mean": 0.778607,
+          "std": 0.107723,
+          "ci95_half_width": 0.094423,
+          "ci95_low": 0.684184,
+          "ci95_high": 0.87303
+        },
+        "accuracy": {
+          "mean": 0.823621,
+          "std": 0.062013,
+          "ci95_half_width": 0.054357,
+          "ci95_low": 0.769264,
+          "ci95_high": 0.877978
+        }
+      },
+      "Gradient Boosting": {
+        "roc_auc": {
+          "mean": 0.897419,
+          "std": 0.045782,
+          "ci95_half_width": 0.04013,
+          "ci95_low": 0.85729,
+          "ci95_high": 0.937549
+        },
+        "brier_score": {
+          "mean": 0.103755,
+          "std": 0.027486,
+          "ci95_half_width": 0.024093,
+          "ci95_low": 0.079662,
+          "ci95_high": 0.127848
+        },
+        "f1": {
+          "mean": 0.669341,
+          "std": 0.139206,
+          "ci95_half_width": 0.122019,
+          "ci95_low": 0.547322,
+          "ci95_high": 0.79136
+        },
+        "precision": {
+          "mean": 0.750185,
+          "std": 0.168288,
+          "ci95_half_width": 0.147511,
+          "ci95_low": 0.602674,
+          "ci95_high": 0.897696
+        },
+        "recall": {
+          "mean": 0.604783,
+          "std": 0.118097,
+          "ci95_half_width": 0.103516,
+          "ci95_low": 0.501267,
+          "ci95_high": 0.7083
+        },
+        "accuracy": {
+          "mean": 0.865427,
+          "std": 0.041228,
+          "ci95_half_width": 0.036138,
+          "ci95_low": 0.829289,
+          "ci95_high": 0.901565
+        }
+      }
+    }
+  },
   "algorithm": "Random Forest Classifier",
   "status": "trained",
   "horizon_days": 183,
   "target_definition": "No commits reachable from the collected default-branch HEAD in the 183 days after the prediction cutoff. Merged pull requests count through their resulting default-branch commits. Merges solely to other branches are outside the target.",
-  "probability_type": "Uncalibrated mean Random Forest leaf class probability; not a statistically validated confidence level.",
-  "calibrated": false,
+  "probability_type": "Isotonic-calibrated probability (uncalibrated leaf average evaluated as baseline score).",
+  "calibrated": true,
+  "calibration": {
+    "method": "isotonic",
+    "brier_score_before": 0.223453,
+    "brier_score_after": 0.211551,
+    "diagram": "model/reliability_diagram.png"
+  },
   "risk_thresholds": {
     "low_below": 0.3,
     "high_at_or_above": 0.65,
@@ -123,6 +269,13 @@
         ]
       ]
     },
+    "brier_score_uncalibrated": 0.223453,
+    "brier_score_calibrated": 0.211551,
+    "calibration": {
+      "method": "isotonic",
+      "brier_score_before": 0.223453,
+      "brier_score_after": 0.211551
+    },
     "baseline_method": "DummyClassifier(strategy='prior')",
     "positive_class": "inactive",
     "classification_threshold": 0.5,
@@ -224,7 +377,7 @@
     "manually_assigned_outcomes": 0
   },
   "runtime": {
-    "python": "3.12.14",
+    "python": "3.12.4",
     "scikit_learn": "1.9.1",
     "numpy": "2.5.4",
     "pandas": "3.0.1"

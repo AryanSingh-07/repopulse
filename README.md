@@ -1,5 +1,7 @@
 # RepoPulse — Repository Intelligence
 
+[![CI](https://github.com/AryanSingh-07/repopulse/actions/workflows/ci.yml/badge.svg)](https://github.com/AryanSingh-07/repopulse/actions/workflows/ci.yml)
+
 A distinctive navy-and-peach dashboard for understanding public GitHub activity and exploring six-month inactivity risk. React, FastAPI, GitHub REST, and an actually trained scikit-learn Random Forest. No Streamlit and no database.
 
 Live application: [RepoPulse on Vercel](https://repopulse-rose.vercel.app/).
@@ -8,7 +10,7 @@ The application supports a Vercel Node.js 22 deployment, the existing Sites Clou
 
 ## Run the complete app locally (Worker preview)
 
-Prerequisites: Node.js 22.x, npm, Python 3.11+ for the Python service/training, and Git for historical collection.
+Prerequisites: Node.js 22.x, npm, Python 3.12+ for the Python service/training, and Git for historical collection.
 
 ```powershell
 cd repopulse
@@ -101,11 +103,23 @@ Artifacts:
 | --- | --- | --- |
 | GET | `/api/health` | Model availability and runtime |
 | GET | `/api/model-info` | Actual model card and evaluation |
+| GET | `/api/badge/:owner/:repo` | Dynamic SVG status badge with estimated risk band |
 | POST | `/api/analyze` | `{"url":"pallets/click"}` → observations, charts, estimate, coverage |
 | POST | `/api/predict` | Same validated collection and prediction workflow |
 | POST | `/api/compare` | `{"urls":["pallets/click","pypa/packaging"]}` → two analyses |
 
 Only public `github.com` repository roots are accepted. Credentials stay server-side. Requests to other hosts and repository subpaths are rejected. An unavailable or empty history does not get a fabricated score. When a pagination cap prevents calculating the 90-day inputs, the response contains `prediction: null` and a coverage explanation. Missing chart values are gaps, while observed zero activity is represented by zero.
+
+### Repository status badge
+
+Embed an SVG status badge for any public repository in markdown or HTML:
+
+```markdown
+[![RepoPulse](https://repopulse-rose.vercel.app/api/badge/pallets/click)](https://repopulse-rose.vercel.app/)
+```
+
+The badge displays the repository's 6-month inactivity risk band (`low risk`, `medium risk`, `high risk`, or `unknown`) using crisp SVG vector rendering with HTTP caching.
+
 
 ## Verification
 

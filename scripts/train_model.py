@@ -26,9 +26,15 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn import __version__ as sklearn_version
+from sklearn.calibration import calibration_curve
 from sklearn.dummy import DummyClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score, roc_auc_score
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.isotonic import IsotonicRegression
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, brier_score_loss, confusion_matrix, f1_score, precision_score, recall_score, roc_auc_score
+from sklearn.model_selection import GroupKFold
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 from ml.features import FEATURE_NAMES, extract_features, feature_vector, inactivity_label, utc_datetime
 
@@ -161,6 +167,85 @@ def save_eda(rows: list[dict], model_metrics: dict) -> None:
     plt.close(figure)
 
 
+def save_reliability_diagram(y_test, prob_uncal, prob_cal, brier_before: float, brier_after: float) -> None:
+    os.environ.setdefault("MPLCONFIGDIR", str(ROOT / "data" / ".mpl-cache"))
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    plt.rcParams.update({"font.family": "DejaVu Sans", "text.color": "#F5F4F6", "axes.labelcolor": "#F5F4F6", "xtick.color": "#A7ACBD", "ytick.color": "#A7ACBD"})
+    figure, ax = plt.subplots(figsize=(6, 5), facecolor="#181A2F")
+    ax.set_facecolor("#242E49")
+    for spine in ax.spines.values():
+        spine.set_color("#37415C")
+    ax.plot([0, 1], [0, 1], linestyle="--", color="#78819B", label="Perfect calibration")
+    frac_pos_uncal, mean_pred_uncal = calibration_curve(y_test, prob_uncal, n_bins=5)
+    ax.plot(mean_pred_uncal, frac_pos_uncal, marker="o", color="#B4182D", label=f"Uncalibrated (Brier: {brier_before:.4f})")
+    frac_pos_cal, mean_pred_cal = calibration_curve(y_test, prob_cal, n_bins=5)
+    ax.plot(mean_pred_cal, frac_pos_cal, marker="s", color="#FDAA81", label=f"Isotonic calibrated (Brier: {brier_after:.4f})")
+    ax.set_xlabel("Mean predicted probability")
+    ax.set_ylabel("Fraction of positives")
+    ax.set_title("RepoPulse · Reliability Diagram", color="#F5F4F6")
+    ax.legend(facecolor="#242E49", labelcolor="#F5F4F6", frameon=True, edgecolor="#37415C")
+    ax.grid(True, color="#37415C", linestyle=":", alpha=0.6)
+    figure.tight_layout()
+    figure.savefig(ROOT / "model" / "reliability_diagram.png", dpi=160, facecolor=figure.get_facecolor())
+    plt.close(figure)
+
+
+def compute_cross_validation(rows: list[dict], n_splits: int = 5) -> dict:
+    X = np.array([feature_vector(r) for r in rows], dtype=np.float32)
+    y = np.array([r["inactive_183d"] for r in rows], dtype=int)
+    groups = np.array([r["repository"] for r in rows])
+
+    gkf = GroupKFold(n_splits=n_splits)
+    models = {
+        "Random Forest": RandomForestClassifier(n_estimators=80, max_depth=6, min_samples_leaf=2, class_weight="balanced", random_state=42, n_jobs=1),
+        "Logistic Regression": make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000, class_weight="balanced", random_state=42)),
+        "Gradient Boosting": GradientBoostingClassifier(random_state=42),
+    }
+
+    raw_scores = {name: {"roc_auc": [], "brier_score": [], "f1": [], "precision": [], "recall": [], "accuracy": []} for name in models}
+
+    for train_idx, test_idx in gkf.split(X, y, groups=groups):
+        X_tr, y_tr = X[train_idx], y[train_idx]
+        X_te, y_te = X[test_idx], y[test_idx]
+        for name, m in models.items():
+            m.fit(X_tr, y_tr)
+            prob = m.predict_proba(X_te)[:, 1]
+            pred = (prob >= 0.5).astype(int)
+            raw_scores[name]["roc_auc"].append(float(roc_auc_score(y_te, prob)))
+            raw_scores[name]["brier_score"].append(float(brier_score_loss(y_te, prob)))
+            raw_scores[name]["f1"].append(float(f1_score(y_te, pred, zero_division=0)))
+            raw_scores[name]["precision"].append(float(precision_score(y_te, pred, zero_division=0)))
+            raw_scores[name]["recall"].append(float(recall_score(y_te, pred, zero_division=0)))
+            raw_scores[name]["accuracy"].append(float(accuracy_score(y_te, pred)))
+
+    summary = {}
+    for name in models:
+        summary[name] = {}
+        for metric, vals in raw_scores[name].items():
+            mean = float(np.mean(vals))
+            std = float(np.std(vals))
+            ci95 = float(1.96 * std / np.sqrt(len(vals)))
+            summary[name][metric] = {
+                "mean": round(mean, 6),
+                "std": round(std, 6),
+                "ci95_half_width": round(ci95, 6),
+                "ci95_low": round(mean - ci95, 6),
+                "ci95_high": round(mean + ci95, 6),
+            }
+
+    return {
+        "method": f"{n_splits}-fold GroupKFold by repository",
+        "n_splits": n_splits,
+        "n_samples": len(rows),
+        "n_repositories": len(set(groups)),
+        "comparison_table": summary,
+    }
+
+
+
+
 def main() -> None:
     rows, provenance = build_dataset()
     frame = pd.DataFrame(rows)
@@ -192,6 +277,14 @@ def main() -> None:
         raise RuntimeError(f"Portable model export differs from sklearn: {parity_error}")
     model_metrics = metrics(y_test, probabilities)
     baseline_metrics = metrics(y_test, baseline.predict_proba(X_test)[:, 1])
+    brier_before = float(brier_score_loss(y_test, probabilities))
+    prob_train = model.predict_proba(X_train)[:, 1]
+    calibrator = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0)
+    calibrator.fit(prob_train, y_train)
+    probabilities_calibrated = calibrator.predict(probabilities)
+    brier_after = float(brier_score_loss(y_test, probabilities_calibrated))
+    save_reliability_diagram(y_test, probabilities, probabilities_calibrated, brier_before, brier_after)
+    cross_validation = compute_cross_validation(rows)
     trained_at = datetime.now(timezone.utc).isoformat()
     dataset_path = ROOT / "data" / "historical_windows.csv"
     with dataset_path.open("w", newline="", encoding="utf-8") as output:
@@ -207,17 +300,38 @@ def main() -> None:
         "version": MODEL_VERSION,
         "model_version": MODEL_VERSION,
         "trained_at": trained_at,
+        "cross_validation": cross_validation,
         "algorithm": "Random Forest Classifier",
         "status": "trained",
         "horizon_days": HORIZON_DAYS,
         "target_definition": "No commits reachable from the collected default-branch HEAD in the 183 days after the prediction cutoff. Merged pull requests count through their resulting default-branch commits. Merges solely to other branches are outside the target.",
-        "probability_type": "Uncalibrated mean Random Forest leaf class probability; not a statistically validated confidence level.",
-        "calibrated": False,
+        "probability_type": "Isotonic-calibrated probability (uncalibrated leaf average evaluated as baseline score).",
+        "calibrated": True,
+        "calibration": {
+            "method": "isotonic",
+            "brier_score_before": round(brier_before, 6),
+            "brier_score_after": round(brier_after, 6),
+            "diagram": "model/reliability_diagram.png",
+        },
         "risk_thresholds": {"low_below": 0.30, "high_at_or_above": 0.65, "classification_threshold": 0.50, "note": "Low/medium/high display bands are product conventions, not empirically optimized decision thresholds."},
         "features": [{"name": name, "label": FEATURE_LABELS[name], "definition": FEATURE_DEFINITIONS[name], "importance": float(importance)} for name, importance in zip(FEATURE_NAMES, model.feature_importances_)],
         "feature_names": FEATURE_NAMES,
         "hyperparameters": model.get_params(),
-        "metrics": {"model": model_metrics, "baseline": baseline_metrics, "baseline_method": "DummyClassifier(strategy='prior')", "positive_class": "inactive", "classification_threshold": 0.5, "confusion_matrix_order": "rows = observed [active, inactive]; columns = predicted [active, inactive]"},
+        "metrics": {
+            "model": model_metrics,
+            "baseline": baseline_metrics,
+            "brier_score_uncalibrated": round(brier_before, 6),
+            "brier_score_calibrated": round(brier_after, 6),
+            "calibration": {
+                "method": "isotonic",
+                "brier_score_before": round(brier_before, 6),
+                "brier_score_after": round(brier_after, 6),
+            },
+            "baseline_method": "DummyClassifier(strategy='prior')",
+            "positive_class": "inactive",
+            "classification_threshold": 0.5,
+            "confusion_matrix_order": "rows = observed [active, inactive]; columns = predicted [active, inactive]"
+        },
         "evaluation": {
             "method": "Chronological holdout AND disjoint repository groups. SHA-256(repo.lower())[0] % 4 == 0 assigns test repositories before outcomes are computed.",
             "train_samples": len(train), "test_samples": len(test),
@@ -245,12 +359,13 @@ def main() -> None:
         "runtime": {"python": sys.version.split()[0], "scikit_learn": sklearn_version, "numpy": np.__version__, "pandas": pd.__version__},
     }
     (ROOT / "model").mkdir(parents=True, exist_ok=True)
-    joblib.dump({"model": model, "feature_names": FEATURE_NAMES, "model_version": MODEL_VERSION, "metadata": info}, ROOT / "model" / "repopulse.joblib", compress=3)
+    joblib.dump({"model": model, "calibrator": calibrator, "feature_names": FEATURE_NAMES, "model_version": MODEL_VERSION, "metadata": info}, ROOT / "model" / "repopulse.joblib", compress=3)
     (ROOT / "model" / "forest.json").write_text(json.dumps(forest, separators=(",", ":"), allow_nan=False), encoding="utf-8")
     (ROOT / "model" / "model-info.json").write_text(json.dumps(info, indent=2, allow_nan=False), encoding="utf-8")
     (ROOT / "data" / "training_provenance.json").write_text(json.dumps({**provenance, "trained_at": trained_at, "dataset_sha256": info["provenance"]["dataset_sha256"], "training_script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), "feature_script_sha256": hashlib.sha256((ROOT / "backend" / "ml" / "features.py").read_bytes()).hexdigest()}, indent=2), encoding="utf-8")
     save_eda(rows, model_metrics)
-    print(json.dumps({"version": MODEL_VERSION, "train_samples": len(train), "test_samples": len(test), "train_repositories": len(training_repositories), "test_repositories": len(testing_repositories), "model": model_metrics, "baseline": baseline_metrics, "export_parity_error": parity_error}, indent=2))
+    print(json.dumps({"version": MODEL_VERSION, "train_samples": len(train), "test_samples": len(test), "train_repositories": len(training_repositories), "test_repositories": len(testing_repositories), "model": model_metrics, "baseline": baseline_metrics, "brier_uncalibrated": brier_before, "brier_calibrated": brier_after, "export_parity_error": parity_error}, indent=2))
+
 
 
 if __name__ == "__main__":

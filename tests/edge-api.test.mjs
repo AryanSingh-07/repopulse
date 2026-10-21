@@ -9,7 +9,7 @@ import { build } from 'esbuild';
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const bundle = await build({ entryPoints: [path.join(root, 'worker/api.js')], bundle: true, platform: 'node', format: 'esm', write: false });
 const api = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString('base64')}`);
-const { parseRepository, extractFeatures, predictForest, GitHub, ApiError, analyze, analyzeCached, createCacheStore, handleApi } = api;
+const { parseRepository, extractFeatures, predictForest, explainTreePath, formatContributionSentence, getTopContributions, renderBadge, GitHub, ApiError, analyze, analyzeCached, createCacheStore, handleApi } = api;
 const now = Date.parse('2026-10-17T12:00:00Z');
 const repository = { full_name: 'owner/project', html_url: 'https://github.com/owner/project', created_at: '2020-01-01T00:00:00Z', private: false };
 const commit = days => ({ sha: String(days), author: { login: 'one' }, commit: { committer: { date: new Date(now - days * 86400000).toISOString() }, author: { email: 'person@example.com' } } });
@@ -165,7 +165,27 @@ function analysisTransport(counter) {
     counter.calls++;
     const url = new URL(value), route = url.pathname;
     let result;
-    if (route === '/search/issues') result = { total_count: 1, incomplete_results: false };
+    if (route === '/graphql') {
+      result = {
+        data: {
+          repository: {
+            defaultBranchRef: {
+              target: {
+                history90d: { totalCount: 2 },
+                history6m: {
+                  totalCount: 2,
+                  pageInfo: { hasNextPage: false, endCursor: null },
+                  nodes: [
+                    { oid: '2', committedDate: new Date(now - 2 * 86400000).toISOString(), author: { name: 'one', email: 'person@example.com', user: { login: 'one' } } },
+                    { oid: '40', committedDate: new Date(now - 40 * 86400000).toISOString(), author: { name: 'one', email: 'person@example.com', user: { login: 'one' } } },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      };
+    } else if (route === '/search/issues') result = { total_count: 1, incomplete_results: false };
     else if (route.endsWith('/commits')) result = [commit(2), commit(40)];
     else if (route.endsWith('/issues') || route.endsWith('/pulls') || route.endsWith('/releases')) result = [];
     else {
@@ -280,6 +300,90 @@ test('truncated history withholds scores and leaves unknown chart values blank',
   assert.match(result.prediction_error, /collection cap/);
 });
 
+test('GraphQL commit collection collects commits and removes pagination-cap failure when 90d is complete', async () => {
+  const store = createCacheStore(() => now);
+  const graphqlData = {
+    repository: {
+      defaultBranchRef: {
+        target: {
+          history90d: { totalCount: 2 },
+          history6m: {
+            totalCount: 650,
+            pageInfo: { hasNextPage: false, endCursor: null },
+            nodes: [
+              { oid: 'sha-1', committedDate: new Date(now - 2 * 86400000).toISOString(), author: { name: 'Alice', email: 'alice@example.com', user: { login: 'alice' } } },
+              { oid: 'sha-2', committedDate: new Date(now - 15 * 86400000).toISOString(), author: { name: 'Bob', email: 'bob@example.com', user: { login: 'bob' } } },
+            ],
+          },
+        },
+      },
+    },
+  };
+  const github = new GitHub('test-token', async (value, options) => {
+    const url = new URL(value);
+    if (url.pathname === '/graphql') {
+      return Response.json({ data: graphqlData });
+    }
+    if (url.pathname === '/repos/owner/project') return Response.json(repository);
+    if (url.pathname === '/search/issues') return Response.json({ total_count: 2, incomplete_results: false });
+    if (url.pathname.endsWith('/issues')) return Response.json([]);
+    if (url.pathname.endsWith('/pulls')) return Response.json([]);
+    if (url.pathname.endsWith('/releases')) return Response.json([]);
+    return Response.json([]);
+  }, store);
+  const result = await analyze('owner/project', github, now);
+  assert.ok(result.prediction !== null);
+  assert.equal(result.coverage.prediction_complete, true);
+  assert.equal(result.features.commits_30d, 2);
+  assert.equal(result.features.contributors_90d, 2);
+});
+
+test('GraphQL commit collection falls back to prediction: null when 90d exceeds collection cap', async () => {
+  const store = createCacheStore(() => now);
+  const graphqlData = {
+    repository: {
+      defaultBranchRef: {
+        target: {
+          history90d: { totalCount: 1500 },
+          history6m: {
+            totalCount: 2500,
+            pageInfo: { hasNextPage: false, endCursor: null },
+            nodes: [
+              { oid: 'sha-1', committedDate: new Date(now - 2 * 86400000).toISOString(), author: { name: 'Alice', email: 'alice@example.com', user: { login: 'alice' } } },
+            ],
+          },
+        },
+      },
+    },
+  };
+  const github = new GitHub('test-token', async value => {
+    const url = new URL(value);
+    if (url.pathname === '/graphql') return Response.json({ data: graphqlData });
+    if (url.pathname === '/repos/owner/project') return Response.json(repository);
+    if (url.pathname === '/search/issues') return Response.json({ total_count: 0 });
+    return Response.json([]);
+  }, store);
+  const result = await analyze('owner/project', github, now);
+  assert.equal(result.prediction, null);
+  assert.equal(result.coverage.prediction_complete, false);
+  assert.match(result.prediction_error, /collection cap/);
+});
+
+test('GraphQL failure falls back to REST commits collection', async () => {
+  const store = createCacheStore(() => now);
+  const github = new GitHub('test-token', async value => {
+    const url = new URL(value);
+    if (url.pathname === '/graphql') return Response.json({ errors: [{ message: 'GraphQL error' }] }, { status: 200 });
+    if (url.pathname === '/repos/owner/project') return Response.json(repository);
+    if (url.pathname === '/repos/owner/project/commits') return Response.json([commit(2), commit(10)]);
+    if (url.pathname === '/search/issues') return Response.json({ total_count: 0 });
+    return Response.json([]);
+  }, store);
+  const result = await analyze('owner/project', github, now);
+  assert.ok(result.prediction !== null);
+  assert.equal(result.features.commits_30d, 2);
+});
+
 test('API method, body, count, and URL errors return readable JSON', async () => {
   assert.equal((await handleApi(new Request('https://app.test/api/analyze'))).status, 405);
   assert.equal((await handleApi(new Request('https://app.test/api/compare', { method: 'POST', body: '{"urls": ["owner/project"]}' }))).status, 400);
@@ -302,3 +406,49 @@ test('JavaScript features and actual forest probabilities match shared Python an
   assert.ok(Math.max(...errors) < 1e-12, `Maximum probability error ${Math.max(...errors)}`);
   assert.ok(errors.length > 100);
 });
+
+test('tree-path contributions explain prediction with exact additivity and informative sentences', () => {
+  const sample = { commits_30d: 0, commits_90d: 2, commit_trend: -1, contributors_90d: 1, contributor_trend: -1, days_since_last_commit: 60, repository_age_days: 300 };
+  const explanation = explainTreePath(sample);
+  const prob = predictForest(sample);
+  const sumContrib = Object.values(explanation.contributions).reduce((a, b) => a + b, 0);
+  assert.ok(Math.abs(prob - (explanation.bias + sumContrib)) < 1e-12);
+
+  const top3 = getTopContributions(sample, undefined, 3);
+  assert.equal(top3.length, 3);
+  for (const item of top3) {
+    assert.ok(item.feature);
+    assert.ok(typeof item.contribution === 'number');
+    assert.ok(typeof item.sentence === 'string' && item.sentence.length > 5);
+  }
+  const zeroCommitsSentence = formatContributionSentence('commits_30d', 0, 0.15);
+  assert.equal(zeroCommitsSentence, 'commits_30d dropped sharply');
+});
+
+test('badge endpoint returns an SVG badge with proper colors and Content-Type', async () => {
+  const lowSvg = renderBadge('Low');
+  assert.ok(lowSvg.startsWith('<svg'));
+  assert.ok(lowSvg.includes('low risk'));
+  assert.ok(lowSvg.includes('#2ea44f'));
+
+  const medSvg = renderBadge('Medium');
+  assert.ok(medSvg.includes('medium risk'));
+  assert.ok(medSvg.includes('#dfb317'));
+
+  const highSvg = renderBadge('High');
+  assert.ok(highSvg.includes('high risk'));
+  assert.ok(highSvg.includes('#e05d44'));
+
+  const unknownSvg = renderBadge(null);
+  assert.ok(unknownSvg.includes('unknown'));
+  assert.ok(unknownSvg.includes('#6e7681'));
+
+  const response = await handleApi(new Request('https://app.test/api/badge/owner/project'));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('Content-Type'), 'image/svg+xml; charset=utf-8');
+  const body = await response.text();
+  assert.ok(body.startsWith('<svg'));
+  assert.ok(body.includes('repopulse'));
+});
+
+

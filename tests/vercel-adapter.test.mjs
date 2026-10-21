@@ -64,7 +64,8 @@ test('real Node HTTP requests reach the existing API and trained forest without 
     assert.equal(url.origin, 'https://api.github.com');
     assert.equal(options.headers.Authorization, 'Bearer vercel-integration-test-token');
     let data;
-    if (path === '/repos/vercel-test/project') data = { full_name: 'vercel-test/project', html_url: 'https://github.com/vercel-test/project', created_at: '2020-01-01T00:00:00Z', private: false, language: 'JavaScript', stargazers_count: 12, forks_count: 3 };
+    if (path === '/graphql') data = { data: { repository: { defaultBranchRef: { target: { history90d: { totalCount: 2 }, history6m: { totalCount: 2, pageInfo: { hasNextPage: false, endCursor: null }, nodes: [2, 40].map(days => ({ oid: `commit-${days}`, committedDate: new Date(now - days * 86400000).toISOString(), author: { name: 'maintainer', email: 'maintainer@example.com', user: { login: 'maintainer' } } })) } } } } } };
+    else if (path === '/repos/vercel-test/project') data = { full_name: 'vercel-test/project', html_url: 'https://github.com/vercel-test/project', created_at: '2020-01-01T00:00:00Z', private: false, language: 'JavaScript', stargazers_count: 12, forks_count: 3 };
     else if (path.endsWith('/commits')) data = [2, 40].map(days => ({ sha: `commit-${days}`, author: { login: 'maintainer' }, commit: { committer: { date: new Date(now - days * 86400000).toISOString() }, author: { email: 'maintainer@example.com' } } }));
     else if (path === '/search/issues') data = { total_count: 0, incomplete_results: false };
     else if (/\/(issues|pulls|releases)$/.test(path)) data = [];
