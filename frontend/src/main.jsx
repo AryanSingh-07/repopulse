@@ -5,6 +5,7 @@ import { Activity, ArrowDown, ArrowDownToLine, ArrowRight, ArrowUpRight, BookOpe
 import { AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { analyzeRepository, compareRepositories, loadModelInfo, getRateLimit, subscribeRateLimit, hasCachedAnalysis, checkConnection } from './api.js';
 import { downloadAnalysisCsv } from './csv.js';
+import { getRepoFromUrl } from './url.js';
 import './styles.css';
 
 const NAV = [{id:'overview',label:'Overview',icon:Layers3},{id:'analysis',label:'Repository analysis',icon:Search},{id:'activity',label:'Activity insights',icon:Activity},{id:'predictions',label:'Predictions',icon:Sparkles},{id:'compare',label:'Compare repositories',icon:GitCompareArrows}];
@@ -28,13 +29,15 @@ function ErrorNote({message,onRetry}) {
 function ObservationNote({data,error,attempted}){const observed=data?.coverage?.data_observed_at||data?.coverage?.observed_at||data?.prediction?.predicted_at;const cached=data?._clientCache?.hit||data?.coverage?.cached;return <div className={`observation-note ${error?'previous-observation':''}`}><Clock3 size={13}/><span>{error?<>The request for <strong>{attempted}</strong> failed. Showing the last successful result for <strong>{data.repository?.full_name}</strong>. </>:cached?'Cached observation. ':''}Observed <time dateTime={observed}>{localTime(observed)}</time>{cached?' · Reused to reduce GitHub requests.':''}</span></div>;}
 function App() {
   const routerNavigate=useNavigate(); const location=useLocation(); const view=location.pathname.slice(1)||'overview'; const [input,setInput]=useState(''); const [data,setData]=useState(null); const [loading,setLoading]=useState(false); const [error,setError]=useState(''); const [mobile,setMobile]=useState(false); const [model,setModel]=useState(null); const [modelError,setModelError]=useState('');
-  const [recent,setRecent]=useState(()=>{try{return JSON.parse(sessionStorage.getItem('repopulse-recent')||'[]').slice(0,4);}catch{return[];}}); const activeRequest=useRef(null); const main=useRef(null); const inputRef=useRef(null);const cooldown=useRateLimit();const blocked=!!cooldown&&!hasCachedAnalysis(input);
+  const [recent,setRecent]=useState(()=>{try{return JSON.parse(sessionStorage.getItem('repopulse-recent')||'[]').slice(0,4);}catch{return[];}}); const activeRequest=useRef(null); const main=useRef(null); const inputRef=useRef(null); const lastAnalyzedRef=useRef(null); const cooldown=useRateLimit();const blocked=!!cooldown&&!hasCachedAnalysis(input);
   useEffect(()=>{checkConnection().catch(()=>{});loadModelInfo().then(setModel).catch(e=>setModelError(e.message)); return()=>activeRequest.current?.abort();},[]);
-  const navigate = id => {routerNavigate('/'+id);setMobile(false);window.scrollTo({top:0,behavior:'smooth'});};
-  const run = async repository => { const value = repository || input; if(!value.trim()){setError('Add a repository URL or owner/name to get started.');inputRef.current?.focus();return;} activeRequest.current?.abort(); const controller = new AbortController(); activeRequest.current=controller; setInput(value);setLoading(true);setError('');routerNavigate('/analysis');setMobile(false);
-    try { const result=await analyzeRepository(value,{signal:controller.signal}); if(controller.signal.aborted)return;setData(result);const name=result.repository?.full_name||value;setRecent(old=>{const next=[name,...old.filter(r=>r!==name)].slice(0,4);sessionStorage.setItem('repopulse-recent',JSON.stringify(next));return next;}); }
+  const navigate = id => {const repo=data?.repository?.full_name||input;const query=repo&&['overview','analysis','activity','predictions'].includes(id)?`?repo=${encodeURIComponent(repo)}`:'';routerNavigate('/'+id+query);setMobile(false);window.scrollTo({top:0,behavior:'smooth'});};
+  const run = async repository => { const value = repository || input; if(!value.trim()){setError('Add a repository URL or owner/name to get started.');inputRef.current?.focus();return;} activeRequest.current?.abort(); const controller = new AbortController(); activeRequest.current=controller; lastAnalyzedRef.current=value; setInput(value);setLoading(true);setError('');routerNavigate(`/analysis?repo=${encodeURIComponent(value)}`);setMobile(false);
+    try { const result=await analyzeRepository(value,{signal:controller.signal}); if(controller.signal.aborted)return;setData(result);const name=result.repository?.full_name||value;lastAnalyzedRef.current=name;if(name!==value){routerNavigate(`/analysis?repo=${encodeURIComponent(name)}`,{replace:true});}if(typeof window!=='undefined'&&window.location?.search){window.history.replaceState(null,'',window.location.pathname+window.location.hash);}setRecent(old=>{const next=[name,...old.filter(r=>r!==name)].slice(0,4);sessionStorage.setItem('repopulse-recent',JSON.stringify(next));return next;}); }
     catch(e){if(e.name!=='AbortError')setError(e);}finally{if(!controller.signal.aborted)setLoading(false);}
   };
+  const urlRepo = getRepoFromUrl(location.search, typeof window !== 'undefined' ? window.location : null);
+  useEffect(()=>{if(urlRepo&&urlRepo!==lastAnalyzedRef.current){lastAnalyzedRef.current=urlRepo;setInput(urlRepo);run(urlRepo);}},[urlRepo]);
   const currentLabel = [...NAV,{id:'about',label:'About the model'}].find(n=>n.id===view)?.label||'Overview';
   return <div className="app-shell">
     {mobile&&<button className="nav-scrim" aria-label="Close menu" onClick={()=>setMobile(false)}/>}

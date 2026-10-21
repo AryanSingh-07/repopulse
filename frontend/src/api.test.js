@@ -2,6 +2,7 @@ import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeRepository, analyzeRepository, compareRepositories, request, clearClientState, getRateLimit, hasCachedAnalysis, checkConnection } from './api.js';
 import { generateAnalysisCsv } from './csv.js';
+import { getRepoFromUrl } from './url.js';
 beforeEach(()=>clearClientState());
 test('repository parser accepts public GitHub forms and strips git suffix', () => { assert.equal(normalizeRepository(' https://github.com/facebook/react.git '), 'facebook/react'); assert.equal(normalizeRepository('pallets/flask'), 'pallets/flask'); });
 test('repository parser rejects non-GitHub URLs, nested paths, and malformed owners', () => { for (const value of ['https://example.com/a/b', 'owner/repo/issues', '/owner/repo', 'a b/repo', '', 'owner/..']) assert.throws(() => normalizeRepository(value)); });
@@ -32,4 +33,13 @@ test('generateAnalysisCsv formats repository, prediction, features, and activity
   assert.ok(csv.includes('feature,commits_30d,5'));
   assert.ok(csv.includes('contribution,top_1_sentence,commits steady'));
   assert.ok(csv.includes('activity,2026-09_commits,5'));
+});
+
+test('getRepoFromUrl extracts repo parameter from router search, window search, or hash query', () => {
+  assert.equal(getRepoFromUrl('?repo=facebook/react', null), 'facebook/react');
+  assert.equal(getRepoFromUrl('?repo=facebook%2Freact', null), 'facebook/react');
+  assert.equal(getRepoFromUrl('', { search: '?repo=pallets/flask', hash: '#/analysis' }), 'pallets/flask');
+  assert.equal(getRepoFromUrl('', { search: '', hash: '#/analysis?repo=fastapi/fastapi' }), 'fastapi/fastapi');
+  assert.equal(getRepoFromUrl('', { search: '', hash: '#/overview' }), null);
+  assert.equal(getRepoFromUrl(null, null), null);
 });
