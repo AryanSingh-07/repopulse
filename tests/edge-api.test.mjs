@@ -9,7 +9,7 @@ import { build } from 'esbuild';
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const bundle = await build({ entryPoints: [path.join(root, 'worker/api.js')], bundle: true, platform: 'node', format: 'esm', write: false });
 const api = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString('base64')}`);
-const { parseRepository, extractFeatures, predictForest, explainTreePath, formatContributionSentence, getTopContributions, renderBadge, GitHub, ApiError, analyze, analyzeCached, createCacheStore, handleApi } = api;
+const { parseRepository, extractFeatures, predictForest, explainTreePath, formatContributionSentence, getTopContributions, renderBadge, isBotIdentity, isBotCommit, GitHub, ApiError, analyze, analyzeCached, createCacheStore, handleApi } = api;
 const now = Date.parse('2026-10-17T12:00:00Z');
 const repository = { full_name: 'owner/project', html_url: 'https://github.com/owner/project', created_at: '2020-01-01T00:00:00Z', private: false };
 const commit = days => ({ sha: String(days), author: { login: 'one' }, commit: { committer: { date: new Date(now - days * 86400000).toISOString() }, author: { email: 'person@example.com' } } });
@@ -451,4 +451,32 @@ test('badge endpoint returns an SVG badge with proper colors and Content-Type', 
   assert.ok(body.includes('repopulse'));
 });
 
+test('bot commits are identified and excluded from features', () => {
+  assert.equal(isBotIdentity('dependabot'), true);
+  assert.equal(isBotIdentity('dependabot[bot]'), true);
+  assert.equal(isBotIdentity('49699333+dependabot[bot]@users.noreply.github.com'), true);
+  assert.equal(isBotIdentity('github-actions[bot]'), true);
+  assert.equal(isBotIdentity('action@github.com'), true);
+  assert.equal(isBotIdentity('renovate[bot]'), true);
+  assert.equal(isBotIdentity('my-service[bot]'), true);
+  assert.equal(isBotIdentity('bd5a8d6c673b738d52b0'), true);
+  assert.equal(isBotIdentity('alice'), false);
+  assert.equal(isBotIdentity('bob@example.com'), false);
 
+  assert.equal(isBotCommit({ author: { login: 'dependabot[bot]' } }), true);
+  assert.equal(isBotCommit({ commit: { author: { email: 'action@github.com' } } }), true);
+  assert.equal(isBotCommit({ commit: { author: { name: 'renovate[bot]' } } }), true);
+  assert.equal(isBotCommit({ timestamp: 1234567, author: 'bd5a8d6c673b738d52b0' }), true);
+  assert.equal(isBotCommit({ author: { login: 'alice' }, commit: { author: { email: 'alice@example.com' } } }), false);
+
+  const commits = [
+    { sha: '1', commit: { committer: { date: new Date(now - 10 * 86400000).toISOString() }, author: { email: 'alice@example.com' } } },
+    { sha: '2', author: { login: 'dependabot[bot]' }, commit: { committer: { date: new Date(now - 2 * 86400000).toISOString() }, author: { email: 'bot@example.com' } } },
+    { sha: '3', commit: { committer: { date: new Date(now - 5 * 86400000).toISOString() }, author: { email: 'action@github.com' } } },
+  ];
+  const features = extractFeatures(commits, repository, now);
+  assert.equal(features.commits_30d, 1);
+  assert.equal(features.commits_90d, 1);
+  assert.equal(features.contributors_90d, 1);
+  assert.equal(features.days_since_last_commit, 10);
+});

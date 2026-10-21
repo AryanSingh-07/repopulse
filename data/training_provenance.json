@@ -438,8 +438,8 @@
     "incomplete_future_window": 96,
     "outside_partition_period": 827
   },
-  "trained_at": "2026-10-21T12:55:16.375923+00:00",
-  "dataset_sha256": "eeafb55fdbf25c1022c0c3d86347c5075048b1e4e07afc80bacef031a6f4bd24",
+  "trained_at": "2026-10-21T13:55:11.319679+00:00",
+  "dataset_sha256": "e1e15403128d7f27ab6f0c576b73469b52ed3b963746cd93e274bcceab1d4e8a",
   "training_script_sha256": "d3687ad001c1f03454c53345c49db6cd82c433482896c18ab2649bfe0a8c2245",
-  "feature_script_sha256": "7e1c4b64e8b5798a26f43ceee0c33acf26d9ced37950d55f09919534467fb179"
+  "feature_script_sha256": "497f5e8bcf0ca496decab7d7ae4acd7684ecd5160ab051bf15b464ec25cc3bdf"
 }

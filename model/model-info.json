@@ -1,7 +1,7 @@
 {
   "version": "exploratory-1.0",
   "model_version": "exploratory-1.0",
-  "trained_at": "2026-10-21T12:55:16.375923+00:00",
+  "trained_at": "2026-10-21T13:55:11.319679+00:00",
   "cross_validation": {
     "method": "5-fold GroupKFold by repository",
     "n_splits": 5,
@@ -10,134 +10,134 @@
     "comparison_table": {
       "Random Forest": {
         "roc_auc": {
-          "mean": 0.904333,
-          "std": 0.050813,
-          "ci95_half_width": 0.04454,
-          "ci95_low": 0.859794,
-          "ci95_high": 0.948873
+          "mean": 0.903342,
+          "std": 0.052184,
+          "ci95_half_width": 0.045742,
+          "ci95_low": 0.8576,
+          "ci95_high": 0.949083
         },
         "brier_score": {
-          "mean": 0.111875,
-          "std": 0.033577,
-          "ci95_half_width": 0.029431,
-          "ci95_low": 0.082444,
-          "ci95_high": 0.141307
+          "mean": 0.111587,
+          "std": 0.033258,
+          "ci95_half_width": 0.029152,
+          "ci95_low": 0.082436,
+          "ci95_high": 0.140739
         },
         "f1": {
-          "mean": 0.690875,
-          "std": 0.112354,
-          "ci95_half_width": 0.098482,
-          "ci95_low": 0.592393,
-          "ci95_high": 0.789357
+          "mean": 0.672437,
+          "std": 0.115661,
+          "ci95_half_width": 0.101381,
+          "ci95_low": 0.571055,
+          "ci95_high": 0.773818
         },
         "precision": {
-          "mean": 0.635483,
-          "std": 0.135691,
-          "ci95_half_width": 0.118938,
-          "ci95_low": 0.516545,
-          "ci95_high": 0.754421
+          "mean": 0.624076,
+          "std": 0.139899,
+          "ci95_half_width": 0.122627,
+          "ci95_low": 0.501449,
+          "ci95_high": 0.746702
         },
         "recall": {
-          "mean": 0.765516,
-          "std": 0.078552,
-          "ci95_half_width": 0.068854,
-          "ci95_low": 0.696661,
-          "ci95_high": 0.83437
+          "mean": 0.737219,
+          "std": 0.077183,
+          "ci95_half_width": 0.067654,
+          "ci95_low": 0.669565,
+          "ci95_high": 0.804873
         },
         "accuracy": {
-          "mean": 0.843511,
-          "std": 0.050898,
-          "ci95_half_width": 0.044614,
-          "ci95_low": 0.798897,
-          "ci95_high": 0.888125
+          "mean": 0.835559,
+          "std": 0.051102,
+          "ci95_half_width": 0.044793,
+          "ci95_low": 0.790766,
+          "ci95_high": 0.880352
         }
       },
       "Logistic Regression": {
         "roc_auc": {
-          "mean": 0.91082,
-          "std": 0.054156,
-          "ci95_half_width": 0.04747,
-          "ci95_low": 0.863349,
-          "ci95_high": 0.95829
+          "mean": 0.909666,
+          "std": 0.055701,
+          "ci95_half_width": 0.048824,
+          "ci95_low": 0.860842,
+          "ci95_high": 0.958489
         },
         "brier_score": {
-          "mean": 0.114149,
-          "std": 0.029938,
-          "ci95_half_width": 0.026242,
-          "ci95_low": 0.087907,
-          "ci95_high": 0.140391
+          "mean": 0.113813,
+          "std": 0.029813,
+          "ci95_half_width": 0.026132,
+          "ci95_low": 0.087681,
+          "ci95_high": 0.139945
         },
         "f1": {
-          "mean": 0.66697,
-          "std": 0.138264,
-          "ci95_half_width": 0.121194,
-          "ci95_low": 0.545777,
-          "ci95_high": 0.788164
+          "mean": 0.671649,
+          "std": 0.134506,
+          "ci95_half_width": 0.1179,
+          "ci95_low": 0.55375,
+          "ci95_high": 0.789549
         },
         "precision": {
-          "mean": 0.588814,
-          "std": 0.148893,
-          "ci95_half_width": 0.130511,
-          "ci95_low": 0.458303,
-          "ci95_high": 0.719324
+          "mean": 0.593203,
+          "std": 0.145347,
+          "ci95_half_width": 0.127402,
+          "ci95_low": 0.465801,
+          "ci95_high": 0.720605
         },
         "recall": {
-          "mean": 0.778607,
-          "std": 0.107723,
-          "ci95_half_width": 0.094423,
-          "ci95_low": 0.684184,
-          "ci95_high": 0.87303
+          "mean": 0.782955,
+          "std": 0.103776,
+          "ci95_half_width": 0.090964,
+          "ci95_low": 0.691991,
+          "ci95_high": 0.873919
         },
         "accuracy": {
-          "mean": 0.823621,
-          "std": 0.062013,
-          "ci95_half_width": 0.054357,
-          "ci95_low": 0.769264,
-          "ci95_high": 0.877978
+          "mean": 0.826631,
+          "std": 0.05903,
+          "ci95_half_width": 0.051742,
+          "ci95_low": 0.774889,
+          "ci95_high": 0.878373
         }
       },
       "Gradient Boosting": {
         "roc_auc": {
-          "mean": 0.897419,
-          "std": 0.045782,
-          "ci95_half_width": 0.04013,
-          "ci95_low": 0.85729,
-          "ci95_high": 0.937549
+          "mean": 0.893768,
+          "std": 0.046545,
+          "ci95_half_width": 0.040798,
+          "ci95_low": 0.85297,
+          "ci95_high": 0.934566
         },
         "brier_score": {
-          "mean": 0.103755,
-          "std": 0.027486,
-          "ci95_half_width": 0.024093,
-          "ci95_low": 0.079662,
-          "ci95_high": 0.127848
+          "mean": 0.103587,
+          "std": 0.026299,
+          "ci95_half_width": 0.023052,
+          "ci95_low": 0.080535,
+          "ci95_high": 0.126639
         },
         "f1": {
-          "mean": 0.669341,
-          "std": 0.139206,
-          "ci95_half_width": 0.122019,
-          "ci95_low": 0.547322,
-          "ci95_high": 0.79136
+          "mean": 0.678061,
+          "std": 0.11127,
+          "ci95_half_width": 0.097533,
+          "ci95_low": 0.580528,
+          "ci95_high": 0.775594
         },
         "precision": {
-          "mean": 0.750185,
-          "std": 0.168288,
-          "ci95_half_width": 0.147511,
-          "ci95_low": 0.602674,
-          "ci95_high": 0.897696
+          "mean": 0.765835,
+          "std": 0.121622,
+          "ci95_half_width": 0.106607,
+          "ci95_low": 0.659228,
+          "ci95_high": 0.872441
         },
         "recall": {
-          "mean": 0.604783,
-          "std": 0.118097,
-          "ci95_half_width": 0.103516,
-          "ci95_low": 0.501267,
-          "ci95_high": 0.7083
+          "mean": 0.608665,
+          "std": 0.103241,
+          "ci95_half_width": 0.090495,
+          "ci95_low": 0.51817,
+          "ci95_high": 0.69916
         },
         "accuracy": {
-          "mean": 0.865427,
-          "std": 0.041228,
-          "ci95_half_width": 0.036138,
-          "ci95_low": 0.829289,
-          "ci95_high": 0.901565
+          "mean": 0.870509,
+          "std": 0.031688,
+          "ci95_half_width": 0.027776,
+          "ci95_low": 0.842734,
+          "ci95_high": 0.898285
         }
       }
     }
@@ -150,8 +150,8 @@
   "calibrated": true,
   "calibration": {
     "method": "isotonic",
-    "brier_score_before": 0.223453,
-    "brier_score_after": 0.211551,
+    "brier_score_before": 0.227476,
+    "brier_score_after": 0.213802,
     "diagram": "model/reliability_diagram.png"
   },
   "risk_thresholds": {
@@ -165,43 +165,43 @@
       "name": "commits_30d",
       "label": "Commits in 30 days",
       "definition": "Number of default-branch commits with cutoff - 30 days < committer timestamp <= cutoff.",
-      "importance": 0.08164807936050296
+      "importance": 0.08089910227165038
     },
     {
       "name": "commits_90d",
       "label": "Commits in 90 days",
       "definition": "Number of default-branch commits with cutoff - 90 days < committer timestamp <= cutoff.",
-      "importance": 0.23092196514120744
+      "importance": 0.230753398294204
     },
     {
       "name": "commit_trend",
       "label": "Commit momentum",
       "definition": "recent 30-day commits / (preceding 60-day commits / 2 + 1) - 1.",
-      "importance": 0.034367269251082876
+      "importance": 0.03343292538938149
     },
     {
       "name": "contributors_90d",
       "label": "Contributors in 90 days",
       "definition": "Distinct commit author email identities in the 90-day window; fall back to author login/name when absent.",
-      "importance": 0.18056177011902041
+      "importance": 0.1807417946599322
     },
     {
       "name": "contributor_trend",
       "label": "Contributor momentum",
       "definition": "Distinct recent 30-day authors / (distinct preceding 60-day authors + 1) - 1.",
-      "importance": 0.04351642432030036
+      "importance": 0.042069619126298495
     },
     {
       "name": "days_since_last_commit",
       "label": "Days since last commit",
       "definition": "Elapsed UTC days from most recent observed default-branch committer timestamp to cutoff.",
-      "importance": 0.3521140176403848
+      "importance": 0.3544537818927544
     },
     {
       "name": "repository_age_days",
       "label": "Repository age in days",
       "definition": "Elapsed UTC days from GitHub repository created_at metadata to cutoff.",
-      "importance": 0.07687047416750127
+      "importance": 0.07764937836577916
     }
   ],
   "feature_names": [
@@ -236,19 +236,19 @@
   },
   "metrics": {
     "model": {
-      "precision": 0.492958,
-      "recall": 0.76087,
-      "f1": 0.598291,
-      "accuracy": 0.673611,
+      "precision": 0.478873,
+      "recall": 0.73913,
+      "f1": 0.581197,
+      "accuracy": 0.659722,
       "roc_auc": 0.800688,
       "confusion_matrix": [
         [
-          62,
-          36
+          61,
+          37
         ],
         [
-          11,
-          35
+          12,
+          34
         ]
       ]
     },
@@ -269,12 +269,12 @@
         ]
       ]
     },
-    "brier_score_uncalibrated": 0.223453,
-    "brier_score_calibrated": 0.211551,
+    "brier_score_uncalibrated": 0.227476,
+    "brier_score_calibrated": 0.213802,
     "calibration": {
       "method": "isotonic",
-      "brier_score_before": 0.223453,
-      "brier_score_after": 0.211551
+      "brier_score_before": 0.227476,
+      "brier_score_after": 0.213802
     },
     "baseline_method": "DummyClassifier(strategy='prior')",
     "positive_class": "inactive",
@@ -351,7 +351,7 @@
       "active": 98,
       "inactive": 46
     },
-    "portable_export_max_absolute_error": 4.440892098500626e-16
+    "portable_export_max_absolute_error": 5.551115123125783e-16
   },
   "limitations": [
     "Exploratory mini-project model trained on a small convenience sample of public libraries; this sample does not represent all GitHub repositories.",
@@ -369,7 +369,7 @@
     "collected_repository_count": 48,
     "commit_count": 54079,
     "dataset": "data/historical_windows.csv",
-    "dataset_sha256": "eeafb55fdbf25c1022c0c3d86347c5075048b1e4e07afc80bacef031a6f4bd24",
+    "dataset_sha256": "e1e15403128d7f27ab6f0c576b73469b52ed3b963746cd93e274bcceab1d4e8a",
     "collection_manifest": "data/provenance.json",
     "training_provenance": "data/training_provenance.json",
     "real_data": true,

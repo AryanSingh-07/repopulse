@@ -6,6 +6,17 @@ A distinctive navy-and-peach dashboard for understanding public GitHub activity 
 
 Live application: [RepoPulse on Vercel](https://repopulse-rose.vercel.app/).
 
+### Key features
+
+- **Inactivity risk estimation**: Scikit-learn Random Forest exported to portable decision trees executed natively in both Python and JavaScript with identical predictions (within `1e-9`).
+- **Bot-commit filtering**: Excludes automated commits from Dependabot, GitHub Actions, Renovate, and bot identities in both training and live inference.
+- **Tree-path explanations**: Explains individual estimates with the top 3 contributing signals and natural-language rationales.
+- **Probability calibration**: Isotonic regression evaluated with reliability diagrams and Brier score tracking.
+- **Shareable deep links**: URL parameters (`?repo=owner/name` or `/#/analysis?repo=owner/name`) automatically populate and run the repository analysis.
+- **Client-side CSV export**: One-click RFC-4180 export of repository observations, predictions, signal contributions, features, and monthly activity series.
+- **SVG status badge**: Dynamic `/api/badge/:owner/:repo` endpoint returning crisp vector badges for project READMEs.
+- **Code-split frontend**: Modular bundle chunking keeping all vendor and application chunks strictly under 500 kB.
+
 The application supports a Vercel Node.js 22 deployment, the existing Sites Cloudflare Worker deployment, and a Python API for local development. Both JavaScript deployment builds use a portable export of the same trained forest. See [ARCHITECTURE.md](ARCHITECTURE.md) for the serving paths and evidence boundaries.
 
 ## Run the complete app locally (Worker preview)
@@ -65,12 +76,12 @@ The saved model was trained on 864 historical windows from 35 repositories and e
 | Metric | Random Forest | Prior baseline |
 | --- | ---: | ---: |
 | ROC-AUC | 0.800688 | 0.500000 |
-| Inactive-class precision | 0.492958 | 0 |
-| Inactive-class recall | 0.760870 | 0 |
-| Inactive-class F1 | 0.598291 | 0 |
-| Accuracy | 0.673611 | 0.680556 |
+| Inactive-class precision | 0.478873 | 0 |
+| Inactive-class recall | 0.739130 | 0 |
+| Inactive-class F1 | 0.581197 | 0 |
+| Accuracy | 0.659722 | 0.680556 |
 
-The model detects more inactive outcomes and ranks them better, but its accuracy is slightly below the majority baseline because it also produces false positives. The confusion matrix is `[[62, 36], [11, 35]]`, with observed active/inactive rows and predicted active/inactive columns. These are descriptive results on this small selected corpus, not a guarantee of performance on arbitrary repositories. The exported forest matched scikit-learn predictions within `4.44e-16` on the holdout.
+The model detects more inactive outcomes and ranks them better, but its accuracy is slightly below the majority baseline because it also produces false positives. The confusion matrix is `[[61, 37], [12, 34]]`, with observed active/inactive rows and predicted active/inactive columns. Brier score is 0.227476 (uncalibrated) and 0.213802 (calibrated with isotonic regression). The exported forest matched scikit-learn predictions within `5.55e-16` on the holdout.
 
 ## Reproduce the data and model
 
@@ -110,15 +121,70 @@ Artifacts:
 
 Only public `github.com` repository roots are accepted. Credentials stay server-side. Requests to other hosts and repository subpaths are rejected. An unavailable or empty history does not get a fabricated score. When a pagination cap prevents calculating the 90-day inputs, the response contains `prediction: null` and a coverage explanation. Missing chart values are gaps, while observed zero activity is represented by zero.
 
-### Repository status badge
+### Usage: Badge endpoint, CSV export, and shareable links
 
-Embed an SVG status badge for any public repository in markdown or HTML:
+#### Repository status badge
+
+Embed an SVG status badge for any public GitHub repository directly in markdown or HTML:
 
 ```markdown
-[![RepoPulse](https://repopulse-rose.vercel.app/api/badge/pallets/click)](https://repopulse-rose.vercel.app/)
+[![RepoPulse](https://repopulse-rose.vercel.app/api/badge/pallets/click)](https://repopulse-rose.vercel.app/?repo=pallets/click)
 ```
 
-The badge displays the repository's 6-month inactivity risk band (`low risk`, `medium risk`, `high risk`, or `unknown`) using crisp SVG vector rendering with HTTP caching.
+Or in HTML:
+
+```html
+<a href="https://repopulse-rose.vercel.app/?repo=pallets/click">
+  <img src="https://repopulse-rose.vercel.app/api/badge/pallets/click" alt="RepoPulse inactivity risk badge" />
+</a>
+```
+
+The badge queries the repository signals and returns an SVG vector graphic displaying the evaluated risk band:
+- `low risk` (<30% probability) in emerald (`#10b981`)
+- `medium risk` (30% to <65% probability) in amber (`#f59e0b`)
+- `high risk` (≥65% probability) in ruby (`#ef4444`)
+- `unknown` (insufficient activity or missing data) in slate (`#64748b`)
+
+Badges are served with HTTP `Cache-Control` headers (1-hour edge caching with stale-while-revalidate) to ensure high responsiveness and minimal GitHub quota consumption.
+
+#### Client-side CSV export
+
+When viewing an analyzed repository, click the **Export CSV** button in the top action panel. The export is generated entirely in-browser (client-side only) formatted per RFC-4180 with proper delimiter escaping:
+- **Repository metadata**: full name, GitHub URL, creation timestamp, age in days, primary language, star count, fork count, open issues, open pull requests, latest commit timestamp, and archived status.
+- **Model prediction**: probability, risk band, model version, prediction timestamp, natural language explanation, and top 3 feature contribution signals with sentences and directions.
+- **Model features**: exact 7 inputs used at inference (`commits_30d`, `commits_90d`, `commit_trend`, `contributors_90d`, `contributor_trend`, `days_since_last_commit`, `repository_age_days`).
+- **Monthly activity series**: observation breakdown across the preceding 6 months for commits, active contributors, issues opened/closed, pull requests opened/merged, and releases.
+
+#### Shareable deep links
+
+Analyses are shareable via URL parameters. Navigating to:
+
+```
+https://repopulse-rose.vercel.app/?repo=facebook/react
+```
+or
+```
+https://repopulse-rose.vercel.app/#/analysis?repo=facebook/react
+```
+
+automatically decodes the repository parameter, populates the search input, and executes the live analysis.
+
+## Limitations and future work
+
+RepoPulse provides an exploratory signal intended to assist developers in evaluating project health and maintenance momentum. It is not an automated verdict or replacement for human review.
+
+### Current limitations
+
+- **Small corpus**: The predictive model is trained and evaluated on 48 public open-source repositories (864 training observation windows, 144 test windows).
+- **Convenience sample**: The corpus consists predominantly of established Python and JavaScript developer tools and web frameworks. Performance characteristics may not generalize to other programming language ecosystems, very small scripts, monorepos, or private enterprise codebases.
+- **Target cannot separate finished from abandoned projects**: The prediction target defines "inactivity" strictly as zero commits to the default branch over the subsequent 183 days (6 months). However, mature, feature-complete, or stable software utilities may deliberately receive few or no commits while functioning perfectly in production. Inactivity does not necessarily indicate failure or neglect.
+- **Uncalibrated display bands**: While probabilities are evaluated with isotonic calibration (reducing Brier score from 0.2275 to 0.2138), the display risk bands (Low < 30%, Medium 30–<65%, High ≥ 65%) are heuristic conventions rather than statistically calibrated intervention thresholds.
+
+### Future work
+
+- **Richer health signals**: Incorporate issue and pull request response latency, median time to merge, community discussion volume, and dependency security freshness to build a multidimensional view of project stewardship.
+- **Expanded multi-language corpus**: Scale historical training collections across thousands of repositories with stratified sampling across diverse domains (systems programming, scientific computing, front-end libraries) and repository scales.
+- **Scheduled retraining and drift monitoring**: Implement automated periodic retraining pipelines to account for evolving collaboration workflows, bot usage patterns, and platform changes over time.
 
 
 ## Verification

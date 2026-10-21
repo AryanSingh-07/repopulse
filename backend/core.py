@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 
 import httpx
 
-from .ml.features import extract_features as trained_features, normalize_commit
+from .ml.features import extract_features as trained_features, normalize_commit, is_bot_commit
 
 ROOT = Path(__file__).resolve().parents[1]
 FEATURES = ["commits_30d", "commits_90d", "commit_trend", "contributors_90d", "contributor_trend", "days_since_last_commit", "repository_age_days"]
@@ -81,9 +81,10 @@ def extract_features(commits, repository, now):
     created = date(repository.get("created_at"))
     if created is None or created > now:
         raise ApiError("insufficient_data", "GitHub returned invalid repository creation metadata. A reliable repository age is required.", 422)
-    if any(commit_date(item) is not None and commit_date(item) <= now for item in commits):
+    human_commits = [item for item in commits if not is_bot_commit(item)]
+    if any(commit_date(item) is not None and commit_date(item) <= now for item in human_commits):
         try:
-            return trained_features(commits, repository, now)
+            return trained_features(human_commits, repository, now)
         except (ValueError, TypeError, KeyError) as exc:
             raise ApiError("insufficient_data", "GitHub returned incomplete commit metadata. Reliable timestamps are required for prediction.", 422) from exc
     return {
