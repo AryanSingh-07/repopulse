@@ -56,6 +56,10 @@ At a classification threshold of 0.50:
 | F1, inactive class | 0.598291 | 0.000000 |
 | ROC-AUC | 0.800688 | 0.500000 |
 | Accuracy | 0.673611 | 0.680556 |
+| Brier score (uncalibrated) | 0.223453 | 0.217361 |
+| Brier score (calibrated, isotonic) | 0.211551 | — |
+
+Probability calibration using isotonic regression reduces the Brier score loss from 0.223453 (uncalibrated) to 0.211551 (calibrated). The reliability diagram is saved to `model/reliability_diagram.png`.
 
 The confusion matrix is `[[62, 36], [11, 35]]`: rows are observed active /
 inactive; columns are predicted active / inactive. The model identifies more
@@ -64,7 +68,8 @@ inactive outcomes and improves ranking over the dummy baseline, but its
 do not justify a claim of production-grade predictive accuracy.
 
 `evaluation.png` shows actual partition class counts and the test confusion
-matrix. `repopulse.joblib` persists the fitted sklearn model. `forest.json`
+matrix. `reliability_diagram.png` shows the calibration curve before and after
+isotonic calibration. `repopulse.joblib` persists the fitted sklearn model. `forest.json`
 exports the same decision trees for the deployed inference runtime. Every test
 vector was evaluated by both implementations; maximum absolute probability
 error was 4.440892098500626e-16. Inputs are cast to float32 for sklearn-compatible

@@ -1,13 +1,19 @@
 {
   "version": "exploratory-1.0",
   "model_version": "exploratory-1.0",
-  "trained_at": "2026-10-17T16:04:24.066941+00:00",
+  "trained_at": "2026-10-21T12:52:01.645189+00:00",
   "algorithm": "Random Forest Classifier",
   "status": "trained",
   "horizon_days": 183,
   "target_definition": "No commits reachable from the collected default-branch HEAD in the 183 days after the prediction cutoff. Merged pull requests count through their resulting default-branch commits. Merges solely to other branches are outside the target.",
-  "probability_type": "Uncalibrated mean Random Forest leaf class probability; not a statistically validated confidence level.",
-  "calibrated": false,
+  "probability_type": "Isotonic-calibrated probability (uncalibrated leaf average evaluated as baseline score).",
+  "calibrated": true,
+  "calibration": {
+    "method": "isotonic",
+    "brier_score_before": 0.223453,
+    "brier_score_after": 0.211551,
+    "diagram": "model/reliability_diagram.png"
+  },
   "risk_thresholds": {
     "low_below": 0.3,
     "high_at_or_above": 0.65,
@@ -123,6 +129,13 @@
         ]
       ]
     },
+    "brier_score_uncalibrated": 0.223453,
+    "brier_score_calibrated": 0.211551,
+    "calibration": {
+      "method": "isotonic",
+      "brier_score_before": 0.223453,
+      "brier_score_after": 0.211551
+    },
     "baseline_method": "DummyClassifier(strategy='prior')",
     "positive_class": "inactive",
     "classification_threshold": 0.5,
@@ -224,7 +237,7 @@
     "manually_assigned_outcomes": 0
   },
   "runtime": {
-    "python": "3.12.14",
+    "python": "3.12.4",
     "scikit_learn": "1.9.1",
     "numpy": "2.5.4",
     "pandas": "3.0.1"
