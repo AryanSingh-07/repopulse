@@ -118,3 +118,104 @@ def test_truncated_recent_history_withholds_prediction(monkeypatch):
     assert result["coverage"]["prediction_complete"] is False
     assert result["activity"]["commits"][-1]["commits"] is None
     assert "collection cap" in result["prediction_error"]
+
+
+def test_graphql_commits_collection_and_fallback(monkeypatch):
+    import backend.core as core
+    monkeypatch.setattr(core, "load_model", lambda: (FOREST, {}))
+
+    graphql_payload = {
+        "data": {
+            "repository": {
+                "defaultBranchRef": {
+                    "target": {
+                        "history90d": {"totalCount": 2},
+                        "history6m": {
+                            "totalCount": 650,
+                            "pageInfo": {"hasNextPage": False, "endCursor": None},
+                            "nodes": [
+                                {
+                                    "oid": "sha-1",
+                                    "committedDate": (NOW - timedelta(days=2)).isoformat(),
+                                    "author": {"name": "Alice", "email": "alice@example.com", "user": {"login": "alice"}},
+                                },
+                                {
+                                    "oid": "sha-2",
+                                    "committedDate": (NOW - timedelta(days=20)).isoformat(),
+                                    "author": {"name": "Bob", "email": "bob@example.com", "user": {"login": "bob"}},
+                                },
+                            ],
+                        },
+                    }
+                }
+            }
+        }
+    }
+
+    def handler(request):
+        if request.url.path == "/graphql":
+            return httpx.Response(200, json=graphql_payload)
+        if request.url.path == "/repos/owner/project":
+            return httpx.Response(200, json=REPO)
+        if request.url.path == "/search/issues":
+            return httpx.Response(200, json={"total_count": 0})
+        if request.url.path.endswith("/issues") or request.url.path.endswith("/pulls") or request.url.path.endswith("/releases"):
+            return httpx.Response(200, json=[])
+        raise AssertionError(request.url.path)
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            return await analyze("owner/project", GitHub(client, token="test-token"), NOW)
+
+    result = asyncio.run(run())
+    assert result["prediction"] is not None
+    assert result["coverage"]["prediction_complete"] is True
+    assert result["features"]["commits_30d"] == 2
+    assert result["features"]["contributors_90d"] == 2
+
+
+def test_graphql_truncated_history_withholds_prediction(monkeypatch):
+    import backend.core as core
+    monkeypatch.setattr(core, "load_model", lambda: (FOREST, {}))
+
+    graphql_payload = {
+        "data": {
+            "repository": {
+                "defaultBranchRef": {
+                    "target": {
+                        "history90d": {"totalCount": 1500},
+                        "history6m": {
+                            "totalCount": 2500,
+                            "pageInfo": {"hasNextPage": False, "endCursor": None},
+                            "nodes": [
+                                {
+                                    "oid": "sha-1",
+                                    "committedDate": (NOW - timedelta(days=2)).isoformat(),
+                                    "author": {"name": "Alice", "email": "alice@example.com", "user": {"login": "alice"}},
+                                },
+                            ],
+                        },
+                    }
+                }
+            }
+        }
+    }
+
+    def handler(request):
+        if request.url.path == "/graphql":
+            return httpx.Response(200, json=graphql_payload)
+        if request.url.path == "/repos/owner/project":
+            return httpx.Response(200, json=REPO)
+        if request.url.path == "/search/issues":
+            return httpx.Response(200, json={"total_count": 0})
+        return httpx.Response(200, json=[])
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            return await analyze("owner/project", GitHub(client, token="test-token"), NOW)
+
+    result = asyncio.run(run())
+    assert result["prediction"] is None
+    assert result["coverage"]["prediction_complete"] is False
+    assert "collection cap" in result["prediction_error"]
+

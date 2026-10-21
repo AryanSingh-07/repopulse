@@ -6,7 +6,7 @@ import json
 import math
 import re
 import struct
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -124,9 +124,32 @@ def predict_forest(features, forest):
 class GitHub:
     def __init__(self, client, token=None):
         self.client = client
+        self.token = token
         self.headers = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "RepoPulse-Research/1.0"}
         if token:
             self.headers["Authorization"] = f"Bearer {token}"
+
+    async def graphql(self, query, variables=None):
+        if not self.token:
+            return None
+        try:
+            response = await self.client.post(
+                "https://api.github.com/graphql",
+                json={"query": query, "variables": variables or {}},
+                headers=self.headers,
+                timeout=20,
+            )
+        except httpx.HTTPError:
+            return None
+        if response.status_code >= 400:
+            return None
+        try:
+            payload = response.json()
+        except ValueError:
+            return None
+        if payload.get("errors") and not payload.get("data"):
+            return None
+        return payload.get("data")
 
     async def get(self, path, params=None, empty_ok=False):
         try:
@@ -173,6 +196,142 @@ class GitHub:
         return {"items": rows, "truncated": truncated, "pages": page, "limit": cap * 100}
 
 
+async def collect_commits_graphql(name, github, since, since90, now):
+    if not hasattr(github, "graphql"):
+        return None
+    parts = name.split("/")
+    if len(parts) != 2:
+        return None
+    owner, repo = parts
+    query = """
+    query($owner: String!, $name: String!, $since: GitTimestamp, $until: GitTimestamp, $since90: GitTimestamp, $cursor: String) {
+      repository(owner: $owner, name: $name) {
+        defaultBranchRef {
+          target {
+            ... on Commit {
+              history90d: history(since: $since90, until: $until, first: 1) {
+                totalCount
+              }
+              history6m: history(since: $since, until: $until, first: 100, after: $cursor) {
+                totalCount
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
+                nodes {
+                  oid
+                  committedDate
+                  author {
+                    name
+                    email
+                    user { login }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    """
+    try:
+        data = await github.graphql(query, {
+            "owner": owner,
+            "name": repo,
+            "since": iso(since),
+            "since90": iso(since90),
+            "until": iso(now),
+        })
+        target = ((data or {}).get("repository") or {}).get("defaultBranchRef", {}).get("target")
+        if not target:
+            return None
+        history90d = target.get("history90d")
+        history6m = target.get("history6m")
+        if not history90d or not history6m:
+            return None
+
+        total90 = history90d.get("totalCount", 0)
+        total6m = history6m.get("totalCount", 0)
+        nodes = list(history6m.get("nodes") or [])
+        page = 1
+        cap = 10
+
+        while history6m.get("pageInfo", {}).get("hasNextPage") and page < cap:
+            count90 = sum(1 for n in nodes if date(n.get("committedDate")) and date(n.get("committedDate")) >= since90)
+            if count90 >= total90 and len(nodes) >= total6m:
+                break
+            cursor = history6m["pageInfo"]["endCursor"]
+            page_query = """
+            query($owner: String!, $name: String!, $since: GitTimestamp, $until: GitTimestamp, $cursor: String) {
+              repository(owner: $owner, name: $name) {
+                defaultBranchRef {
+                  target {
+                    ... on Commit {
+                      history(since: $since, until: $until, first: 100, after: $cursor) {
+                        pageInfo {
+                          hasNextPage
+                          endCursor
+                        }
+                        nodes {
+                          oid
+                          committedDate
+                          author {
+                            name
+                            email
+                            user { login }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """
+            next_data = await github.graphql(page_query, {
+                "owner": owner,
+                "name": repo,
+                "since": iso(since),
+                "until": iso(now),
+                "cursor": cursor,
+            })
+            next_hist = (((next_data or {}).get("repository") or {}).get("defaultBranchRef") or {}).get("target", {}).get("history")
+            if not next_hist or not next_hist.get("nodes"):
+                break
+            nodes.extend(next_hist["nodes"])
+            history6m = next_hist
+            page += 1
+
+        items = [
+            {
+                "sha": n.get("oid"),
+                "commit": {
+                    "committer": {"date": n.get("committedDate")},
+                    "author": {
+                        "date": n.get("committedDate"),
+                        "name": (n.get("author") or {}).get("name") or "unknown",
+                        "email": (n.get("author") or {}).get("email") or "unknown",
+                    },
+                },
+                "author": {"login": (n.get("author") or {}).get("user", {}).get("login")} if (n.get("author") or {}).get("user") else None,
+            }
+            for n in nodes
+        ]
+        count90_collected = sum(1 for c in items if commit_date(c) and commit_date(c) >= since90)
+        complete90 = count90_collected >= total90
+        truncated = len(items) < total6m
+        return {
+            "items": items,
+            "truncated": truncated,
+            "pages": page,
+            "limit": cap * 100,
+            "complete90": complete90,
+            "source": "graphql",
+        }
+    except Exception:
+        return None
+
+
 def month_bins(now):
     year_month = now.year * 12 + now.month - 1
     return [f"{(year_month - offset) // 12:04d}-{(year_month - offset) % 12 + 1:02d}" for offset in range(5, -1, -1)]
@@ -197,6 +356,7 @@ async def analyze(name, github, now=None):
         raise ApiError("private_repository", "Only public repositories are supported.", 403)
     months = month_bins(now)
     since = date(months[0] + "-01T00:00:00Z")
+    since90 = date(now) - timedelta(days=90)
     warnings = []
 
     async def optional(coroutine, label):
@@ -206,20 +366,26 @@ async def analyze(name, github, now=None):
             warnings.append(f"{label}: {exc.message}")
             return {"items": [], "truncated": True, "pages": 0, "limit": 0, "error": exc.code}
 
-    commits, issues, pulls, releases = await asyncio.gather(
-        github.pages(name, "commits", {"since": iso(since), "until": iso(now)}, 5, since),
+    commits_graphql = await collect_commits_graphql(name, github, since, since90, now)
+    issues, pulls, releases = await asyncio.gather(
         optional(github.pages(name, "issues", {"state": "all", "since": iso(since), "sort": "updated", "direction": "desc"}, 3, since, "updated_at"), "Issues"),
         optional(github.pages(name, "pulls", {"state": "all", "sort": "updated", "direction": "desc"}, 3, since, "updated_at"), "Pull requests"),
         optional(github.pages(name, "releases", {}, 2, since), "Releases"),
     )
+    if commits_graphql:
+        commits = commits_graphql
+    else:
+        commits = await github.pages(name, "commits", {"since": iso(since), "until": iso(now)}, 5, since)
+
     feature_commits = list(commits["items"])
     if not feature_commits:
         latest, _ = await github.get(f"/repos/{name}/commits", {"per_page": 1}, empty_ok=True)
-        feature_commits.extend(latest)
+        if isinstance(latest, list):
+            feature_commits.extend(latest)
     features = extract_features(feature_commits, repository, now)
     # Commit dates can be backdated and do not prove an ordered complete window.
     # Any capped collection is therefore insufficient for a reliable prediction.
-    complete90 = not commits["truncated"]
+    complete90 = commits.get("complete90", not commits["truncated"])
     for resource, collection in (("Commits", commits), ("Issues", issues), ("Pull requests", pulls), ("Releases", releases)):
         if collection["truncated"] and not collection.get("error"):
             warnings.append(f"{resource} reached the {collection['limit']}-record collection cap. Incomplete chart values are left blank.")

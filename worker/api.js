@@ -79,6 +79,7 @@ export function predictForest(features, model = forest) {
 
 export class GitHub {
   constructor(token, fetcher = nativeFetch, cacheStore) {
+    this.token = token;
     this.fetcher = fetcher;
     // Injected transports use isolated stores unless a test explicitly shares one.
     this.store = cacheStore || (fetcher === nativeFetch ? sharedCache : createCacheStore());
@@ -172,6 +173,62 @@ export class GitHub {
     try { return { data: await response.json(), headers, observedAt: this.store.clock(), cacheable: true }; }
     catch { throw new ApiError('github_unavailable', 'GitHub returned an invalid response.', 502); }
   }
+  async graphql(query, variables = {}) {
+    if (!this.token) return null;
+    const namespace = await this.namespace;
+    const bodyStr = JSON.stringify({ query, variables });
+    const key = `${namespace}|graphql|${bodyStr}`;
+    const cached = readCache(this.store, key);
+    if (cached) {
+      this.recordObservation(cached.observedAt, cached.expiresAt, true);
+      return cached.value.data;
+    }
+    const result = await deduplicate(this.store, key, async () => {
+      const blocked = cooldownUntil(this.store, namespace, 'core');
+      if (blocked) throw this.rateError(namespace, 'core', blocked);
+      let response, timer;
+      const controller = new AbortController();
+      const signal = typeof globalThis.AbortSignal?.timeout === 'function'
+        ? globalThis.AbortSignal.timeout(20000)
+        : (timer = setTimeout(() => controller.abort(), 20000), controller.signal);
+      try {
+        response = await this.fetcher('https://api.github.com/graphql', {
+          method: 'POST',
+          headers: { ...this.headers, 'Content-Type': 'application/json' },
+          body: bodyStr,
+          redirect: 'manual',
+          signal,
+        });
+      } catch (error) {
+        console.error('GitHub GraphQL failure', String(error?.name || 'Error').replace(/[^A-Za-z0-9_]/g, '').slice(0, 64), this.sanitizeError(error));
+        return null;
+      } finally {
+        if (timer !== undefined) clearTimeout(timer);
+      }
+      observeQuota(this.store, namespace, 'core', response.headers);
+      if (response.status === 401) throw new ApiError('github_authentication', 'The configured GitHub token was rejected. Replace or remove the server-side GITHUB_TOKEN.', 503);
+      if ([403, 429].includes(response.status)) {
+        const remaining = response.headers.get('x-ratelimit-remaining'), retry = response.headers.get('retry-after');
+        if (remaining === '0' || response.status === 429 || retry) {
+          const until = retryTime(response.headers, this.store.clock());
+          const limitedResource = response.headers.get('x-ratelimit-resource') || 'core';
+          setCooldown(this.store, namespace, remaining === '0' ? limitedResource : '*', until);
+          throw this.rateError(namespace, limitedResource, until);
+        }
+        return null;
+      }
+      if (!response.ok) return null;
+      let json;
+      try { json = await response.json(); } catch { return null; }
+      if (json.errors?.length && !json.data) return null;
+      const data = json.data;
+      if (data && !data.repository?.isPrivate) writeCache(this.store, key, { data, headers: [] });
+      return { data, observedAt: this.store.clock(), expiresAt: this.store.clock() + CACHE_TTL_MS };
+    });
+    if (!result?.data) return null;
+    this.recordObservation(result.observedAt, result.expiresAt, false);
+    return result.data;
+  }
   async pages(name, resource, params, cap, since, orderedField) {
     const rows = [];
     let truncated = false, page = 1;
@@ -185,6 +242,137 @@ export class GitHub {
     }
     const items = resource === 'commits' ? [...new Map(rows.map((item, index) => [item.sha ?? String(index), item])).values()] : rows;
     return { items, truncated, pages: Math.min(page, cap), limit: cap * 100 };
+  }
+}
+
+export async function collectCommitsGraphQL(name, github, since, since90, now) {
+  if (typeof github?.graphql !== 'function') return null;
+  const [owner, repo] = name.split('/');
+  const query = `
+    query($owner: String!, $name: String!, $since: GitTimestamp, $until: GitTimestamp, $since90: GitTimestamp, $cursor: String) {
+      repository(owner: $owner, name: $name) {
+        defaultBranchRef {
+          target {
+            ... on Commit {
+              history90d: history(since: $since90, until: $until, first: 1) {
+                totalCount
+              }
+              history6m: history(since: $since, until: $until, first: 100, after: $cursor) {
+                totalCount
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
+                nodes {
+                  oid
+                  committedDate
+                  author {
+                    name
+                    email
+                    user { login }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+  try {
+    const data = await github.graphql(query, {
+      owner,
+      name: repo,
+      since: iso(since),
+      since90: iso(since90),
+      until: iso(now),
+    });
+    const target = data?.repository?.defaultBranchRef?.target;
+    if (!target) return null;
+    const history90d = target.history90d;
+    let history6m = target.history6m;
+    if (!history90d || !history6m) return null;
+
+    const total90 = history90d.totalCount;
+    const total6m = history6m.totalCount;
+    let nodes = [...(history6m.nodes || [])];
+    let page = 1;
+    const cap = 10;
+
+    while (history6m.pageInfo?.hasNextPage && page < cap) {
+      const count90 = nodes.filter(n => date(n.committedDate) && date(n.committedDate) >= since90).length;
+      if (count90 >= total90 && nodes.length >= total6m) break;
+
+      const cursor = history6m.pageInfo.endCursor;
+      const pageQuery = `
+        query($owner: String!, $name: String!, $since: GitTimestamp, $until: GitTimestamp, $cursor: String) {
+          repository(owner: $owner, name: $name) {
+            defaultBranchRef {
+              target {
+                ... on Commit {
+                  history(since: $since, until: $until, first: 100, after: $cursor) {
+                    pageInfo {
+                      hasNextPage
+                      endCursor
+                    }
+                    nodes {
+                      oid
+                      committedDate
+                      author {
+                        name
+                        email
+                        user { login }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      `;
+      const nextData = await github.graphql(pageQuery, {
+        owner,
+        name: repo,
+        since: iso(since),
+        until: iso(now),
+        cursor,
+      });
+      const nextHist = nextData?.repository?.defaultBranchRef?.target?.history;
+      if (!nextHist?.nodes) break;
+      nodes.push(...nextHist.nodes);
+      history6m = nextHist;
+      page++;
+    }
+
+    const items = nodes.map(n => ({
+      sha: n.oid,
+      commit: {
+        committer: { date: n.committedDate },
+        author: {
+          date: n.committedDate,
+          name: n.author?.name || 'unknown',
+          email: n.author?.email || 'unknown',
+        },
+      },
+      author: n.author?.user?.login ? { login: n.author.user.login } : null,
+    }));
+
+    const count90Collected = items.filter(c => commitDate(c) && commitDate(c) >= since90).length;
+    const complete90 = count90Collected >= total90;
+    const truncated = items.length < total6m;
+
+    return {
+      items,
+      truncated,
+      pages: page,
+      limit: cap * 100,
+      complete90,
+      totalCount: total6m,
+      source: 'graphql',
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -203,6 +391,7 @@ export async function analyze(input, github, now = Date.now()) {
   if (!repository || typeof repository !== 'object' || Array.isArray(repository)) throw new ApiError('github_unavailable', 'GitHub returned an unexpected repository response.', 502);
   if (repository.private) throw new ApiError('private_repository', 'Only public repositories are supported.', 403);
   const months = monthBins(now), since = date(`${months[0]}-01T00:00:00Z`), warnings = [];
+  const since90 = now - 90 * DAY;
   const optional = async (promise, label) => {
     try { return await promise; } catch (error) {
       if (!(error instanceof ApiError)) throw error;
@@ -210,17 +399,20 @@ export async function analyze(input, github, now = Date.now()) {
       return { items: [], truncated: true, pages: 0, limit: 0, error: error.code };
     }
   };
-  const [commits, issues, pulls, releases] = await Promise.all([
-    github.pages(name, 'commits', { since: iso(since), until: iso(now) }, 5, since),
+  let commits = await collectCommitsGraphQL(name, github, since, since90, now);
+  const [issues, pulls, releases] = await Promise.all([
     optional(github.pages(name, 'issues', { state: 'all', since: iso(since), sort: 'updated', direction: 'desc' }, 3, since, 'updated_at'), 'Issues'),
     optional(github.pages(name, 'pulls', { state: 'all', sort: 'updated', direction: 'desc' }, 3, since, 'updated_at'), 'Pull requests'),
     optional(github.pages(name, 'releases', {}, 2, since), 'Releases'),
   ]);
+  if (!commits) {
+    commits = await github.pages(name, 'commits', { since: iso(since), until: iso(now) }, 5, since);
+  }
   const featureCommits = [...commits.items];
-  if (!featureCommits.length) { const [latest] = await github.get(`/repos/${name}/commits`, { per_page: 1 }, true); featureCommits.push(...latest); }
+  if (!featureCommits.length) { const [latest] = await github.get(`/repos/${name}/commits`, { per_page: 1 }, true); if (Array.isArray(latest)) featureCommits.push(...latest); }
   const features = extractFeatures(featureCommits, repository, now);
   // Backdated timestamps do not establish completeness when a page cap is hit.
-  const complete90 = !commits.truncated;
+  const complete90 = commits.complete90 !== undefined ? commits.complete90 : !commits.truncated;
   for (const [label, collection] of [['Commits', commits], ['Issues', issues], ['Pull requests', pulls], ['Releases', releases]]) {
     if (collection.truncated && !collection.error) warnings.push(`${label} reached the ${collection.limit}-record collection cap. Incomplete chart values are left blank.`);
   }

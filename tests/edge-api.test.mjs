@@ -165,7 +165,27 @@ function analysisTransport(counter) {
     counter.calls++;
     const url = new URL(value), route = url.pathname;
     let result;
-    if (route === '/search/issues') result = { total_count: 1, incomplete_results: false };
+    if (route === '/graphql') {
+      result = {
+        data: {
+          repository: {
+            defaultBranchRef: {
+              target: {
+                history90d: { totalCount: 2 },
+                history6m: {
+                  totalCount: 2,
+                  pageInfo: { hasNextPage: false, endCursor: null },
+                  nodes: [
+                    { oid: '2', committedDate: new Date(now - 2 * 86400000).toISOString(), author: { name: 'one', email: 'person@example.com', user: { login: 'one' } } },
+                    { oid: '40', committedDate: new Date(now - 40 * 86400000).toISOString(), author: { name: 'one', email: 'person@example.com', user: { login: 'one' } } },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      };
+    } else if (route === '/search/issues') result = { total_count: 1, incomplete_results: false };
     else if (route.endsWith('/commits')) result = [commit(2), commit(40)];
     else if (route.endsWith('/issues') || route.endsWith('/pulls') || route.endsWith('/releases')) result = [];
     else {
@@ -278,6 +298,90 @@ test('truncated history withholds scores and leaves unknown chart values blank',
   assert.equal(result.coverage.prediction_complete, false);
   assert.equal(result.activity.commits.at(-1).commits, null);
   assert.match(result.prediction_error, /collection cap/);
+});
+
+test('GraphQL commit collection collects commits and removes pagination-cap failure when 90d is complete', async () => {
+  const store = createCacheStore(() => now);
+  const graphqlData = {
+    repository: {
+      defaultBranchRef: {
+        target: {
+          history90d: { totalCount: 2 },
+          history6m: {
+            totalCount: 650,
+            pageInfo: { hasNextPage: false, endCursor: null },
+            nodes: [
+              { oid: 'sha-1', committedDate: new Date(now - 2 * 86400000).toISOString(), author: { name: 'Alice', email: 'alice@example.com', user: { login: 'alice' } } },
+              { oid: 'sha-2', committedDate: new Date(now - 15 * 86400000).toISOString(), author: { name: 'Bob', email: 'bob@example.com', user: { login: 'bob' } } },
+            ],
+          },
+        },
+      },
+    },
+  };
+  const github = new GitHub('test-token', async (value, options) => {
+    const url = new URL(value);
+    if (url.pathname === '/graphql') {
+      return Response.json({ data: graphqlData });
+    }
+    if (url.pathname === '/repos/owner/project') return Response.json(repository);
+    if (url.pathname === '/search/issues') return Response.json({ total_count: 2, incomplete_results: false });
+    if (url.pathname.endsWith('/issues')) return Response.json([]);
+    if (url.pathname.endsWith('/pulls')) return Response.json([]);
+    if (url.pathname.endsWith('/releases')) return Response.json([]);
+    return Response.json([]);
+  }, store);
+  const result = await analyze('owner/project', github, now);
+  assert.ok(result.prediction !== null);
+  assert.equal(result.coverage.prediction_complete, true);
+  assert.equal(result.features.commits_30d, 2);
+  assert.equal(result.features.contributors_90d, 2);
+});
+
+test('GraphQL commit collection falls back to prediction: null when 90d exceeds collection cap', async () => {
+  const store = createCacheStore(() => now);
+  const graphqlData = {
+    repository: {
+      defaultBranchRef: {
+        target: {
+          history90d: { totalCount: 1500 },
+          history6m: {
+            totalCount: 2500,
+            pageInfo: { hasNextPage: false, endCursor: null },
+            nodes: [
+              { oid: 'sha-1', committedDate: new Date(now - 2 * 86400000).toISOString(), author: { name: 'Alice', email: 'alice@example.com', user: { login: 'alice' } } },
+            ],
+          },
+        },
+      },
+    },
+  };
+  const github = new GitHub('test-token', async value => {
+    const url = new URL(value);
+    if (url.pathname === '/graphql') return Response.json({ data: graphqlData });
+    if (url.pathname === '/repos/owner/project') return Response.json(repository);
+    if (url.pathname === '/search/issues') return Response.json({ total_count: 0 });
+    return Response.json([]);
+  }, store);
+  const result = await analyze('owner/project', github, now);
+  assert.equal(result.prediction, null);
+  assert.equal(result.coverage.prediction_complete, false);
+  assert.match(result.prediction_error, /collection cap/);
+});
+
+test('GraphQL failure falls back to REST commits collection', async () => {
+  const store = createCacheStore(() => now);
+  const github = new GitHub('test-token', async value => {
+    const url = new URL(value);
+    if (url.pathname === '/graphql') return Response.json({ errors: [{ message: 'GraphQL error' }] }, { status: 200 });
+    if (url.pathname === '/repos/owner/project') return Response.json(repository);
+    if (url.pathname === '/repos/owner/project/commits') return Response.json([commit(2), commit(10)]);
+    if (url.pathname === '/search/issues') return Response.json({ total_count: 0 });
+    return Response.json([]);
+  }, store);
+  const result = await analyze('owner/project', github, now);
+  assert.ok(result.prediction !== null);
+  assert.equal(result.features.commits_30d, 2);
 });
 
 test('API method, body, count, and URL errors return readable JSON', async () => {
