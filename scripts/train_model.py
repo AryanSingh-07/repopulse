@@ -28,9 +28,13 @@ import pandas as pd
 from sklearn import __version__ as sklearn_version
 from sklearn.calibration import calibration_curve
 from sklearn.dummy import DummyClassifier
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.isotonic import IsotonicRegression
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, brier_score_loss, confusion_matrix, f1_score, precision_score, recall_score, roc_auc_score
+from sklearn.model_selection import GroupKFold
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 from ml.features import FEATURE_NAMES, extract_features, feature_vector, inactivity_label, utc_datetime
 
@@ -188,6 +192,59 @@ def save_reliability_diagram(y_test, prob_uncal, prob_cal, brier_before: float, 
     plt.close(figure)
 
 
+def compute_cross_validation(rows: list[dict], n_splits: int = 5) -> dict:
+    X = np.array([feature_vector(r) for r in rows], dtype=np.float32)
+    y = np.array([r["inactive_183d"] for r in rows], dtype=int)
+    groups = np.array([r["repository"] for r in rows])
+
+    gkf = GroupKFold(n_splits=n_splits)
+    models = {
+        "Random Forest": RandomForestClassifier(n_estimators=80, max_depth=6, min_samples_leaf=2, class_weight="balanced", random_state=42, n_jobs=1),
+        "Logistic Regression": make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000, class_weight="balanced", random_state=42)),
+        "Gradient Boosting": GradientBoostingClassifier(random_state=42),
+    }
+
+    raw_scores = {name: {"roc_auc": [], "brier_score": [], "f1": [], "precision": [], "recall": [], "accuracy": []} for name in models}
+
+    for train_idx, test_idx in gkf.split(X, y, groups=groups):
+        X_tr, y_tr = X[train_idx], y[train_idx]
+        X_te, y_te = X[test_idx], y[test_idx]
+        for name, m in models.items():
+            m.fit(X_tr, y_tr)
+            prob = m.predict_proba(X_te)[:, 1]
+            pred = (prob >= 0.5).astype(int)
+            raw_scores[name]["roc_auc"].append(float(roc_auc_score(y_te, prob)))
+            raw_scores[name]["brier_score"].append(float(brier_score_loss(y_te, prob)))
+            raw_scores[name]["f1"].append(float(f1_score(y_te, pred, zero_division=0)))
+            raw_scores[name]["precision"].append(float(precision_score(y_te, pred, zero_division=0)))
+            raw_scores[name]["recall"].append(float(recall_score(y_te, pred, zero_division=0)))
+            raw_scores[name]["accuracy"].append(float(accuracy_score(y_te, pred)))
+
+    summary = {}
+    for name in models:
+        summary[name] = {}
+        for metric, vals in raw_scores[name].items():
+            mean = float(np.mean(vals))
+            std = float(np.std(vals))
+            ci95 = float(1.96 * std / np.sqrt(len(vals)))
+            summary[name][metric] = {
+                "mean": round(mean, 6),
+                "std": round(std, 6),
+                "ci95_half_width": round(ci95, 6),
+                "ci95_low": round(mean - ci95, 6),
+                "ci95_high": round(mean + ci95, 6),
+            }
+
+    return {
+        "method": f"{n_splits}-fold GroupKFold by repository",
+        "n_splits": n_splits,
+        "n_samples": len(rows),
+        "n_repositories": len(set(groups)),
+        "comparison_table": summary,
+    }
+
+
+
 
 def main() -> None:
     rows, provenance = build_dataset()
@@ -227,6 +284,7 @@ def main() -> None:
     probabilities_calibrated = calibrator.predict(probabilities)
     brier_after = float(brier_score_loss(y_test, probabilities_calibrated))
     save_reliability_diagram(y_test, probabilities, probabilities_calibrated, brier_before, brier_after)
+    cross_validation = compute_cross_validation(rows)
     trained_at = datetime.now(timezone.utc).isoformat()
     dataset_path = ROOT / "data" / "historical_windows.csv"
     with dataset_path.open("w", newline="", encoding="utf-8") as output:
@@ -242,6 +300,7 @@ def main() -> None:
         "version": MODEL_VERSION,
         "model_version": MODEL_VERSION,
         "trained_at": trained_at,
+        "cross_validation": cross_validation,
         "algorithm": "Random Forest Classifier",
         "status": "trained",
         "horizon_days": HORIZON_DAYS,

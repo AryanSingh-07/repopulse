@@ -75,6 +75,17 @@ vector was evaluated by both implementations; maximum absolute probability
 error was 4.440892098500626e-16. Inputs are cast to float32 for sklearn-compatible
 threshold comparisons.
 
+### 5-fold repository-grouped cross-validation
+
+To evaluate generalization across repositories without temporal or maintainer leakage, 5-fold `GroupKFold` cross-validation was run across all 47 repositories (1,008 historical observation windows). 95% confidence intervals are computed across folds:
+
+| Model | ROC-AUC (95% CI) | Brier score (95% CI) | F1 score (95% CI) | Accuracy (95% CI) |
+| --- | ---: | ---: | ---: | ---: |
+| **Random Forest** | 0.9043 ± 0.0445 | 0.1119 ± 0.0294 | 0.6909 ± 0.0985 | 0.8435 ± 0.0446 |
+| **Logistic Regression** | 0.9108 ± 0.0475 | 0.1141 ± 0.0262 | 0.6670 ± 0.1212 | 0.8236 ± 0.0544 |
+| **Gradient Boosting** | 0.8974 ± 0.0401 | 0.1038 ± 0.0241 | 0.6693 ± 0.1220 | 0.8654 ± 0.0361 |
+
+
 ## Limits and intended use
 
 This is an educational, exploratory mini-project. The convenience sample is

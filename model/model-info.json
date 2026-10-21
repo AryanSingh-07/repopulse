@@ -1,7 +1,147 @@
 {
   "version": "exploratory-1.0",
   "model_version": "exploratory-1.0",
-  "trained_at": "2026-10-21T12:52:01.645189+00:00",
+  "trained_at": "2026-10-21T12:55:16.375923+00:00",
+  "cross_validation": {
+    "method": "5-fold GroupKFold by repository",
+    "n_splits": 5,
+    "n_samples": 1008,
+    "n_repositories": 47,
+    "comparison_table": {
+      "Random Forest": {
+        "roc_auc": {
+          "mean": 0.904333,
+          "std": 0.050813,
+          "ci95_half_width": 0.04454,
+          "ci95_low": 0.859794,
+          "ci95_high": 0.948873
+        },
+        "brier_score": {
+          "mean": 0.111875,
+          "std": 0.033577,
+          "ci95_half_width": 0.029431,
+          "ci95_low": 0.082444,
+          "ci95_high": 0.141307
+        },
+        "f1": {
+          "mean": 0.690875,
+          "std": 0.112354,
+          "ci95_half_width": 0.098482,
+          "ci95_low": 0.592393,
+          "ci95_high": 0.789357
+        },
+        "precision": {
+          "mean": 0.635483,
+          "std": 0.135691,
+          "ci95_half_width": 0.118938,
+          "ci95_low": 0.516545,
+          "ci95_high": 0.754421
+        },
+        "recall": {
+          "mean": 0.765516,
+          "std": 0.078552,
+          "ci95_half_width": 0.068854,
+          "ci95_low": 0.696661,
+          "ci95_high": 0.83437
+        },
+        "accuracy": {
+          "mean": 0.843511,
+          "std": 0.050898,
+          "ci95_half_width": 0.044614,
+          "ci95_low": 0.798897,
+          "ci95_high": 0.888125
+        }
+      },
+      "Logistic Regression": {
+        "roc_auc": {
+          "mean": 0.91082,
+          "std": 0.054156,
+          "ci95_half_width": 0.04747,
+          "ci95_low": 0.863349,
+          "ci95_high": 0.95829
+        },
+        "brier_score": {
+          "mean": 0.114149,
+          "std": 0.029938,
+          "ci95_half_width": 0.026242,
+          "ci95_low": 0.087907,
+          "ci95_high": 0.140391
+        },
+        "f1": {
+          "mean": 0.66697,
+          "std": 0.138264,
+          "ci95_half_width": 0.121194,
+          "ci95_low": 0.545777,
+          "ci95_high": 0.788164
+        },
+        "precision": {
+          "mean": 0.588814,
+          "std": 0.148893,
+          "ci95_half_width": 0.130511,
+          "ci95_low": 0.458303,
+          "ci95_high": 0.719324
+        },
+        "recall": {
+          "mean": 0.778607,
+          "std": 0.107723,
+          "ci95_half_width": 0.094423,
+          "ci95_low": 0.684184,
+          "ci95_high": 0.87303
+        },
+        "accuracy": {
+          "mean": 0.823621,
+          "std": 0.062013,
+          "ci95_half_width": 0.054357,
+          "ci95_low": 0.769264,
+          "ci95_high": 0.877978
+        }
+      },
+      "Gradient Boosting": {
+        "roc_auc": {
+          "mean": 0.897419,
+          "std": 0.045782,
+          "ci95_half_width": 0.04013,
+          "ci95_low": 0.85729,
+          "ci95_high": 0.937549
+        },
+        "brier_score": {
+          "mean": 0.103755,
+          "std": 0.027486,
+          "ci95_half_width": 0.024093,
+          "ci95_low": 0.079662,
+          "ci95_high": 0.127848
+        },
+        "f1": {
+          "mean": 0.669341,
+          "std": 0.139206,
+          "ci95_half_width": 0.122019,
+          "ci95_low": 0.547322,
+          "ci95_high": 0.79136
+        },
+        "precision": {
+          "mean": 0.750185,
+          "std": 0.168288,
+          "ci95_half_width": 0.147511,
+          "ci95_low": 0.602674,
+          "ci95_high": 0.897696
+        },
+        "recall": {
+          "mean": 0.604783,
+          "std": 0.118097,
+          "ci95_half_width": 0.103516,
+          "ci95_low": 0.501267,
+          "ci95_high": 0.7083
+        },
+        "accuracy": {
+          "mean": 0.865427,
+          "std": 0.041228,
+          "ci95_half_width": 0.036138,
+          "ci95_low": 0.829289,
+          "ci95_high": 0.901565
+        }
+      }
+    }
+  },
   "algorithm": "Random Forest Classifier",
   "status": "trained",
   "horizon_days": 183,
