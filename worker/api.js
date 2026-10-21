@@ -38,11 +38,38 @@ const commitDate = c => date(c.commit?.committer?.date || c.commit?.author?.date
 const authorKey = c => 'timestamp' in c ? String(c.author ?? 'unknown') : String(c.commit?.author?.email || c.author?.login || c.commit?.author?.name || 'unknown').trim().toLowerCase();
 const iso = time => new Date(time).toISOString();
 
+const KNOWN_BOT_HASHES = new Set([
+  'bd5a8d6c673b738d52b0',
+  '22859c22aa42a847117f',
+  '4836c036306c20663d39',
+]);
+const BOT_SUBSTRINGS = ['dependabot', 'github-actions', 'renovate', '[bot]'];
+
+export function isBotIdentity(val) {
+  if (!val) return false;
+  const low = String(val).trim().toLowerCase();
+  if (BOT_SUBSTRINGS.some(sub => low.includes(sub))) return true;
+  if (low === 'action@github.com' || low === 'actions@github.com') return true;
+  if (KNOWN_BOT_HASHES.has(low)) return true;
+  return false;
+}
+
+export function isBotCommit(commit) {
+  if (!commit || typeof commit !== 'object') return false;
+  if ('timestamp' in commit && isBotIdentity(commit.author)) return true;
+  if (typeof commit.author === 'string' && isBotIdentity(commit.author)) return true;
+  if (isBotIdentity(commit.author?.login || commit.author?.user?.login)) return true;
+  if (isBotIdentity(commit.commit?.author?.email || commit.commit?.author?.name)) return true;
+  if (isBotIdentity(commit.commit?.committer?.email || commit.commit?.committer?.name)) return true;
+  return false;
+}
+
 export function extractFeatures(commits, repository, now = Date.now()) {
   const created = date(repository.created_at);
   if (created === null || created > now) throw new ApiError('insufficient_data', 'GitHub returned invalid repository creation metadata. A reliable repository age is required.', 422);
   const recent = [], prior = [], dates = [];
   for (const commit of commits) {
+    if (isBotCommit(commit)) continue;
     const time = commitDate(commit);
     if (time === null) throw new ApiError('insufficient_data', 'GitHub returned incomplete commit metadata. Reliable timestamps are required for prediction.', 422);
     if (time > now) continue;

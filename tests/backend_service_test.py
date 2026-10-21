@@ -288,3 +288,18 @@ def test_badge_endpoint(monkeypatch):
             assert "image/svg+xml" in resp2.headers["content-type"]
 
     asyncio.run(run())
+
+
+def test_bot_commits_filtered_in_backend():
+    commits = [
+        commit(10, login="alice", email="alice@example.com"),
+        commit(2, login="dependabot[bot]", email="dependabot[bot]@users.noreply.github.com"),
+        commit(4, login="github-actions[bot]", email="action@github.com"),
+        commit(6, login="renovate[bot]", email="29139614+renovate[bot]@users.noreply.github.com"),
+    ]
+    features = extract_features(commits, REPO, NOW)
+    assert features["commits_30d"] == 1
+    assert features["commits_90d"] == 1
+    assert features["contributors_90d"] == 1
+    assert features["days_since_last_commit"] == 10.0
+

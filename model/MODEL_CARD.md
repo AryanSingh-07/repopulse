@@ -51,17 +51,17 @@ At a classification threshold of 0.50:
 
 | Metric | Random Forest | Dummy prior baseline |
 | --- | ---: | ---: |
-| Precision, inactive class | 0.492958 | 0.000000 |
-| Recall, inactive class | 0.760870 | 0.000000 |
-| F1, inactive class | 0.598291 | 0.000000 |
+| Precision, inactive class | 0.478873 | 0.000000 |
+| Recall, inactive class | 0.739130 | 0.000000 |
+| F1, inactive class | 0.581197 | 0.000000 |
 | ROC-AUC | 0.800688 | 0.500000 |
-| Accuracy | 0.673611 | 0.680556 |
-| Brier score (uncalibrated) | 0.223453 | 0.217361 |
-| Brier score (calibrated, isotonic) | 0.211551 | — |
+| Accuracy | 0.659722 | 0.680556 |
+| Brier score (uncalibrated) | 0.227476 | 0.217361 |
+| Brier score (calibrated, isotonic) | 0.213802 | — |
 
-Probability calibration using isotonic regression reduces the Brier score loss from 0.223453 (uncalibrated) to 0.211551 (calibrated). The reliability diagram is saved to `model/reliability_diagram.png`.
+Probability calibration using isotonic regression reduces the Brier score loss from 0.227476 (uncalibrated) to 0.213802 (calibrated). The reliability diagram is saved to `model/reliability_diagram.png`.
 
-The confusion matrix is `[[62, 36], [11, 35]]`: rows are observed active /
+The confusion matrix is `[[61, 37], [12, 34]]`: rows are observed active /
 inactive; columns are predicted active / inactive. The model identifies more
 inactive outcomes and improves ranking over the dummy baseline, but its
 **accuracy is slightly lower than the majority-class baseline**. These results
@@ -72,7 +72,7 @@ matrix. `reliability_diagram.png` shows the calibration curve before and after
 isotonic calibration. `repopulse.joblib` persists the fitted sklearn model. `forest.json`
 exports the same decision trees for the deployed inference runtime. Every test
 vector was evaluated by both implementations; maximum absolute probability
-error was 4.440892098500626e-16. Inputs are cast to float32 for sklearn-compatible
+error was 5.551115123125783e-16. Inputs are cast to float32 for sklearn-compatible
 threshold comparisons.
 
 ### 5-fold repository-grouped cross-validation
@@ -81,9 +81,9 @@ To evaluate generalization across repositories without temporal or maintainer le
 
 | Model | ROC-AUC (95% CI) | Brier score (95% CI) | F1 score (95% CI) | Accuracy (95% CI) |
 | --- | ---: | ---: | ---: | ---: |
-| **Random Forest** | 0.9043 ± 0.0445 | 0.1119 ± 0.0294 | 0.6909 ± 0.0985 | 0.8435 ± 0.0446 |
-| **Logistic Regression** | 0.9108 ± 0.0475 | 0.1141 ± 0.0262 | 0.6670 ± 0.1212 | 0.8236 ± 0.0544 |
-| **Gradient Boosting** | 0.8974 ± 0.0401 | 0.1038 ± 0.0241 | 0.6693 ± 0.1220 | 0.8654 ± 0.0361 |
+| **Random Forest** | 0.9033 ± 0.0457 | 0.1116 ± 0.0292 | 0.6724 ± 0.1014 | 0.8356 ± 0.0448 |
+| **Logistic Regression** | 0.9097 ± 0.0488 | 0.1138 ± 0.0261 | 0.6716 ± 0.1179 | 0.8266 ± 0.0517 |
+| **Gradient Boosting** | 0.8938 ± 0.0408 | 0.1036 ± 0.0231 | 0.6781 ± 0.0975 | 0.8705 ± 0.0278 |
 
 
 ## Limits and intended use

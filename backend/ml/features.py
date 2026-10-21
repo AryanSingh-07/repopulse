@@ -27,6 +27,52 @@ def utc_datetime(value: Any) -> datetime:
     return result.replace(tzinfo=timezone.utc) if result.tzinfo is None else result.astimezone(timezone.utc)
 
 
+KNOWN_BOT_HASHES = {
+    "bd5a8d6c673b738d52b0",  # 49699333+dependabot[bot]@users.noreply.github.com
+    "22859c22aa42a847117f",  # 27856297+dependabot-preview[bot]@users.noreply.github.com
+    "4836c036306c20663d39",  # 29139614+renovate[bot]@users.noreply.github.com
+}
+BOT_SUBSTRINGS = ("dependabot", "github-actions", "renovate", "[bot]")
+
+
+def is_bot_identity(val: Any) -> bool:
+    if not val:
+        return False
+    low = str(val).strip().lower()
+    if any(sub in low for sub in BOT_SUBSTRINGS):
+        return True
+    if low in ("action@github.com", "actions@github.com"):
+        return True
+    if low in KNOWN_BOT_HASHES:
+        return True
+    h = sha256(low.encode()).hexdigest()[:20]
+    return h in KNOWN_BOT_HASHES
+
+
+def is_bot_commit(commit: Mapping[str, Any]) -> bool:
+    if "timestamp" in commit:
+        author = str(commit.get("author", ""))
+        if is_bot_identity(author):
+            return True
+    author_obj = commit.get("author")
+    if isinstance(author_obj, dict):
+        if is_bot_identity(author_obj.get("login", "")):
+            return True
+        user_obj = author_obj.get("user")
+        if isinstance(user_obj, dict) and is_bot_identity(user_obj.get("login", "")):
+            return True
+    elif isinstance(author_obj, str) and is_bot_identity(author_obj):
+        return True
+    detail = commit.get("commit") or {}
+    author_detail = detail.get("author") or {}
+    if is_bot_identity(author_detail.get("name", "")) or is_bot_identity(author_detail.get("email", "")):
+        return True
+    committer_detail = detail.get("committer") or {}
+    if is_bot_identity(committer_detail.get("name", "")) or is_bot_identity(committer_detail.get("email", "")):
+        return True
+    return False
+
+
 def normalize_commit(commit: Mapping[str, Any]) -> tuple[datetime, str]:
     """Accept a GitHub REST commit or our privacy-preserving historical row."""
     if "timestamp" in commit:
@@ -43,7 +89,7 @@ def extract_features(commits: Iterable[Mapping[str, Any]], repository: Mapping[s
     created = utc_datetime(repository["created_at"])
     if created > cutoff:
         raise ValueError("Repository creation is after the observation cutoff")
-    history = sorted((normalize_commit(c) for c in commits), key=lambda c: c[0])
+    history = sorted((normalize_commit(c) for c in commits if not is_bot_commit(c)), key=lambda c: c[0])
     observed = [c for c in history if c[0] <= cutoff]
     if not observed:
         raise ValueError("No default-branch commits available before the observation cutoff")

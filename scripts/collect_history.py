@@ -15,11 +15,14 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "backend"))
+from ml.features import is_bot_identity
 REPOSITORIES = [
     "pallets/click", "pallets/itsdangerous", "pallets/markupsafe", "pallets/jinja",
     "pypa/sampleproject", "pypa/packaging", "python/typing_extensions", "python-attrs/attrs",
@@ -72,6 +75,8 @@ def collect_one(repo: str, cache: Path, destination: Path, refresh: bool) -> dic
         commits = []
         for line in log.splitlines():
             timestamp, author, sha = line.split("\t", 2)
+            if is_bot_identity(author):
+                continue
             commits.append({"timestamp": int(timestamp), "author": hashlib.sha256(author.strip().lower().encode()).hexdigest()[:20], "sha": sha})
         commits.sort(key=lambda c: (c["timestamp"], c["sha"]))
         collected_at = datetime.now(timezone.utc).isoformat()
